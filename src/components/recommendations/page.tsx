@@ -12,15 +12,8 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Textarea } from '@/components/ui/textarea';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Badge } from '@/components/ui/badge';
+import type { GenerateCareerRecommendationsOutput } from '@/ai/flows/generate-career-recommendations';
 
-// This is an adjusted type to match the new function output.
-interface CareerRecommendation {
-    career: string;
-    reason: string;
-    missingSkills: string;
-    learningPlan: string;
-    resources: string;
-}
 
 const formSchema = z.object({
   userProfile: z.string().min(20, 'Please provide more details about your profile.'),
@@ -29,7 +22,7 @@ const formSchema = z.object({
 export function RecommendationsPage() {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
-  const [result, setResult] = useState<{ careerRecommendations: CareerRecommendation[] } | null>(null);
+  const [result, setResult] = useState<GenerateCareerRecommendationsOutput | null>(null);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -45,8 +38,7 @@ export function RecommendationsPage() {
     setIsLoading(false);
 
     if (response.success && response.data) {
-      // The shape of data is now { careerRecommendations: [...] }
-      setResult(response.data as any);
+      setResult(response.data);
     } else {
       toast({
         variant: "destructive",

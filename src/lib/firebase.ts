@@ -1,10 +1,9 @@
-'use client';
 
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { getFunctions } from 'firebase/functions';
-import { getAnalytics } from "firebase/analytics";
+import { getAnalytics, isSupported } from "firebase/analytics";
 
 const firebaseConfig = {
   apiKey: "AIzaSyAZRQLIieXFytt1ztD8uE6TeaqeT4ggBAs",
@@ -21,7 +20,8 @@ const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 const functions = getFunctions(app);
-const analytics = typeof window !== 'undefined' ? getAnalytics(app) : null;
+
+const analytics = isSupported().then(yes => yes ? getAnalytics(app) : null);
 
 
 export { app, auth, db, functions, analytics };

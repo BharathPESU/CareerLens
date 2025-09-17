@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 export const experienceSchema = z.object({
   role: z.string().min(1, 'Role is required.'),
+  company: z.string().min(1, 'Company is required.'),
   years: z.string().min(1, 'Years of experience is required.'),
   skills: z.array(z.string()),
 });
@@ -14,7 +15,7 @@ export const educationSchema = z.object({
 
 export const skillSchema = z.object({
   name: z.string().min(1, 'Skill name cannot be empty.'),
-  level: z.string().min(1, 'Skill level cannot be empty'),
+  proficiency: z.string().min(1, 'Skill proficiency cannot be empty'),
 });
 
 export const userProfileSchema = z.object({
@@ -27,6 +28,7 @@ export const userProfileSchema = z.object({
   preferences: z.object({
     location: z.string(),
     remote: z.boolean(),
+    industries: z.array(z.string()),
   }),
 });
 

@@ -10,5 +10,6 @@ export const defaultProfileData: UserProfile = {
   preferences: {
     location: '',
     remote: false,
+    industries: [],
   },
 };

@@ -1,35 +1,10 @@
-{
-  "rules": {
-    "users": {
-      "$userId": {
-        // Logged-in users can read and write their own data.
-        "allow": "read, write: if request.auth != null && request.auth.uid == $userId;"
-      }
-    },
-    "recommendations": {
-      "$uid": {
-        "allow": "read, write: if request.auth.uid == $uid"
-      }
-    },
-    "skillGaps": {
-      "$uid": {
-        "allow": "read, write: if request.auth.uid == $uid"
-      }
-    },
-    "roadmaps": {
-      "$uid": {
-        "allow": "read, write: if request.auth.uid == $uid"
-      }
-    },
-    "resumes": {
-      "$uid": {
-        "allow": "read, write: if request.auth.uid == $uid"
-      }
-    },
-    "interviewPrep": {
-      "$uid": {
-        "allow": "read, write: if request.auth.uid == $uid"
-      }
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /users/{userId} {
+      // Temporarily allow writes for development. 
+      // In production, this should be: allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read, write: if true;
     }
   }
 }

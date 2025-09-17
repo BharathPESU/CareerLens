@@ -1,17 +1,13 @@
+
 'use server';
 
-import { genkit } from 'genkit';
-import { googleAI } from '@genkit-ai/googleai';
-import { db } from '@/lib/firebase';
 import { doc, setDoc } from 'firebase/firestore';
-
-
+import { db } from '@/lib/firebase';
 import { generateCareerRecommendations as genkitGenerateCareerRecommendations } from '@/ai/flows/generate-career-recommendations';
 import { performSkillGapAnalysis } from '@/ai/flows/perform-skill-gap-analysis';
 import { createPersonalizedRoadmap } from '@/ai/flows/create-personalized-roadmap';
 import { generateResumeFromJson } from '@/ai/flows/generate-resume-from-json';
 import { generateInterviewQuestions } from '@/ai/flows/generate-interview-questions';
-
 import type { GenerateCareerRecommendationsInput, GenerateCareerRecommendationsOutput } from '@/ai/schemas/career-recommendations';
 import type { SkillGapAnalysisInput, SkillGapAnalysisOutput } from '@/ai/flows/perform-skill-gap-analysis';
 import type { CreatePersonalizedRoadmapInput, CreatePersonalizedRoadmapOutput } from '@/ai/flows/create-personalized-roadmap';

@@ -1,7 +1,7 @@
 'use server';
 
-import { getFunctions, httpsCallable } from 'firebase/functions';
-import { app } from '@/lib/firebase'; // Ensure app is initialized
+import { genkit } from 'genkit';
+import { googleAI } from '@genkit-ai/googleai';
 
 import { generateCareerRecommendations as genkitGenerateCareerRecommendations } from '@/ai/flows/generate-career-recommendations';
 import { performSkillGapAnalysis } from '@/ai/flows/perform-skill-gap-analysis';
@@ -10,16 +10,16 @@ import { generateResumeFromJson } from '@/ai/flows/generate-resume-from-json';
 import { generateInterviewQuestions } from '@/ai/flows/generate-interview-questions';
 
 import type { GenerateCareerRecommendationsOutput } from '@/ai/schemas/career-recommendations';
-import type { SkillGapAnalysisInput } from '@/ai/flows/perform-skill-gap-analysis';
-import type { CreatePersonalizedRoadmapInput } from '@/ai/flows/create-personalized-roadmap';
-import type { GenerateResumeFromJsonInput } from '@/ai/flows/generate-resume-from-json';
-import type { GenerateInterviewQuestionsInput } from '@/ai/flows/generate-interview-questions';
+import type { SkillGapAnalysisInput, SkillGapAnalysisOutput } from '@/ai/flows/perform-skill-gap-analysis';
+import type { CreatePersonalizedRoadmapInput, CreatePersonalizedRoadmapOutput } from '@/ai/flows/create-personalized-roadmap';
+import type { GenerateResumeFromJsonInput, GenerateResumeFromJsonOutput } from '@/ai/flows/generate-resume-from-json';
+import type { GenerateInterviewQuestionsInput, GenerateInterviewQuestionsOutput } from '@/ai/flows/generate-interview-questions';
+
 
 export async function getCareerRecommendations(
   input: { profile: string }
 ): Promise<{ success: boolean; data?: GenerateCareerRecommendationsOutput; error?: string }> {
   try {
-    // Note: We are now directly calling the Genkit flow for server-side execution.
     const result = await genkitGenerateCareerRecommendations({ profile: input.profile });
     return { success: true, data: result };
   } catch (error: any) {
@@ -28,46 +28,46 @@ export async function getCareerRecommendations(
   }
 }
 
-export async function getSkillGapAnalysis(input: SkillGapAnalysisInput) {
+export async function getSkillGapAnalysis(input: SkillGapAnalysisInput): Promise<{ success: boolean; data?: SkillGapAnalysisOutput; error?: string }> {
   try {
     const result = await performSkillGapAnalysis(input);
     return { success: true, data: result };
-  } catch (error) {
+  } catch (error: any) {
     console.error(error);
-    return { success: false, error: 'Failed to perform skill gap analysis.' };
+    return { success: false, error: error.message || 'Failed to perform skill gap analysis.' };
   }
 }
 
 export async function getPersonalizedRoadmap(
   input: CreatePersonalizedRoadmapInput
-) {
+): Promise<{ success: boolean; data?: CreatePersonalizedRoadmapOutput; error?: string }> {
   try {
     const result = await createPersonalizedRoadmap(input);
     return { success: true, data: result };
-  } catch (error) {
+  } catch (error: any) {
     console.error(error);
-    return { success: false, error: 'Failed to create roadmap.' };
+    return { success: false, error: error.message || 'Failed to create roadmap.' };
   }
 }
 
-export async function getResumeJson(input: GenerateResumeFromJsonInput) {
+export async function getResumeJson(input: GenerateResumeFromJsonInput): Promise<{ success: boolean; data?: GenerateResumeFromJsonOutput; error?: string }> {
   try {
     const result = await generateResumeFromJson(input);
     return { success: true, data: result };
-  } catch (error) {
+  } catch (error: any) {
     console.error(error);
-    return { success: false, error: 'Failed to generate resume.' };
+    return { success: false, error: error.message || 'Failed to generate resume.' };
   }
 }
 
 export async function getInterviewQuestions(
   input: GenerateInterviewQuestionsInput
-) {
+): Promise<{ success: boolean; data?: GenerateInterviewQuestionsOutput; error?: string }> {
   try {
     const result = await generateInterviewQuestions(input);
     return { success: true, data: result };
-  } catch (error) {
+  } catch (error: any) {
     console.error(error);
-    return { success: false, error: 'Failed to generate questions.' };
+    return { success: false, error: error.message || 'Failed to generate questions.' };
   }
 }

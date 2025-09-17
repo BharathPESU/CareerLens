@@ -1,0 +1,152 @@
+'use client';
+import { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { Loader2, Sparkles, Wand2, Lightbulb, CheckCircle, ListTodo, BookOpen } from 'lucide-react';
+import { useToast } from "@/hooks/use-toast";
+import { getCareerRecommendations } from '@/lib/actions';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Textarea } from '@/components/ui/textarea';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { Badge } from '@/components/ui/badge';
+import type { GenerateCareerRecommendationsOutput } from '@/ai/flows/generate-career-recommendations';
+
+const formSchema = z.object({
+  userProfile: z.string().min(20, 'Please provide more details about your profile.'),
+  preferences: z.string().min(10, 'Please describe your job preferences.'),
+});
+
+export function RecommendationsPage() {
+  const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(false);
+  const [result, setResult] = useState<GenerateCareerRecommendationsOutput | null>(null);
+
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      userProfile: 'Experienced software engineer with 5+ years in web development, specializing in React, Node.js, and cloud platforms like AWS. Strong problem-solving skills and a passion for building scalable applications.',
+      preferences: 'Looking for a remote senior role in a fast-paced tech company. Interested in team leadership opportunities. Salary expectation around $150,000.',
+    },
+  });
+
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    setIsLoading(true);
+    setResult(null);
+    const response = await getCareerRecommendations(values);
+    setIsLoading(false);
+
+    if (response.success && response.data) {
+      setResult(response.data);
+    } else {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: response.error,
+      });
+    }
+  }
+
+  return (
+    <div className="p-4 md:p-6 space-y-8">
+      <div>
+        <h1 className="text-3xl font-bold flex items-center gap-2"><Wand2 className="w-8 h-8 text-primary"/> AI Career Recommendations</h1>
+        <p className="text-muted-foreground">Leverage AI to discover your next career move.</p>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Describe Yourself</CardTitle>
+          <CardDescription>The more detail you provide, the better the recommendations will be.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              <FormField
+                control={form.control}
+                name="userProfile"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Your Professional Profile</FormLabel>
+                    <FormControl>
+                      <Textarea placeholder="Detail your education, experience, skills, and interests..." {...field} className="min-h-[120px]"/>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="preferences"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Job Preferences</FormLabel>
+                    <FormControl>
+                      <Textarea placeholder="Describe your ideal job, including salary, location, company culture..." {...field} className="min-h-[80px]"/>
+                    </FormControl>
+                     <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <Button type="submit" disabled={isLoading}>
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Generating...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="mr-2 h-4 w-4" />
+                    Get Recommendations
+                  </>
+                )}
+              </Button>
+            </form>
+          </Form>
+        </CardContent>
+      </Card>
+
+      {result && (
+        <div className="space-y-6">
+            <h2 className="text-2xl font-bold">Your Top Recommendations</h2>
+            <Accordion type="single" collapsible className="w-full" defaultValue="item-0">
+            {result.careerRecommendations.map((career, index) => (
+                <AccordionItem value={`item-${index}`} key={index}>
+                <AccordionTrigger className="text-xl font-semibold hover:no-underline">
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center justify-center bg-primary/10 rounded-lg p-3">
+                      <Briefcase className="h-6 w-6 text-primary"/>
+                    </div>
+                     {career}
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent className="p-4 space-y-6 bg-muted/30 rounded-b-lg">
+                    <div className="space-y-2">
+                        <h3 className="font-semibold text-lg flex items-center gap-2"><Lightbulb className="w-5 h-5 text-amber-500" />Reasons to Consider</h3>
+                        <p className="text-muted-foreground">{result.reasons[index]}</p>
+                    </div>
+                     <div className="space-y-2">
+                        <h3 className="font-semibold text-lg flex items-center gap-2"><CheckCircle className="w-5 h-5 text-red-500"/>Missing Skills</h3>
+                        <div className="flex flex-wrap gap-2">
+                            {result.missingSkills[index]?.split(',').map((skill, i) => skill.trim() && <Badge key={i} variant="destructive">{skill.trim()}</Badge>)}
+                        </div>
+                    </div>
+                     <div className="space-y-2">
+                        <h3 className="font-semibold text-lg flex items-center gap-2"><ListTodo className="w-5 h-5 text-green-500" />Suggested Learning Plan</h3>
+                        <p className="text-muted-foreground whitespace-pre-line">{result.learningPlan[index]}</p>
+                    </div>
+                    <div className="space-y-2">
+                        <h3 className="font-semibold text-lg flex items-center gap-2"><BookOpen className="w-5 h-5 text-blue-500"/>Helpful Resources</h3>
+                         <p className="text-muted-foreground whitespace-pre-line">{result.resources[index]}</p>
+                    </div>
+                </AccordionContent>
+                </AccordionItem>
+            ))}
+            </Accordion>
+        </div>
+      )}
+    </div>
+  );
+}

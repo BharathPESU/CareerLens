@@ -12,7 +12,7 @@ import { createPersonalizedRoadmap } from '@/ai/flows/create-personalized-roadma
 import { generateResumeFromJson } from '@/ai/flows/generate-resume-from-json';
 import { generateInterviewQuestions } from '@/ai/flows/generate-interview-questions';
 
-import type { GenerateCareerRecommendationsOutput } from '@/ai/schemas/career-recommendations';
+import type { GenerateCareerRecommendationsInput, GenerateCareerRecommendationsOutput } from '@/ai/schemas/career-recommendations';
 import type { SkillGapAnalysisInput, SkillGapAnalysisOutput } from '@/ai/flows/perform-skill-gap-analysis';
 import type { CreatePersonalizedRoadmapInput, CreatePersonalizedRoadmapOutput } from '@/ai/flows/create-personalized-roadmap';
 import type { GenerateResumeFromJsonInput, GenerateResumeFromJsonOutput } from '@/ai/flows/generate-resume-from-json';
@@ -21,10 +21,10 @@ import type { UserProfile } from '@/lib/types';
 
 
 export async function getCareerRecommendations(
-  input: { profile: string }
+  input: GenerateCareerRecommendationsInput
 ): Promise<{ success: boolean; data?: GenerateCareerRecommendationsOutput; error?: string }> {
   try {
-    const result = await genkitGenerateCareerRecommendations({ profile: input.profile });
+    const result = await genkitGenerateCareerRecommendations(input);
     return { success: true, data: result };
   } catch (error: any) {
     console.error(error);
@@ -86,10 +86,10 @@ export async function saveUserProfile(
     await setDoc(userDocRef, {
       ...profileData,
       updatedAt: new Date().toISOString(),
-    });
+    }, { merge: true });
     return { success: true };
   } catch (error: any) {
     console.error('Error saving profile:', error);
-    return { success: false, error: 'Failed to save user profile.' };
+    return { success: false, error: error.message || 'Failed to save user profile.' };
   }
 }

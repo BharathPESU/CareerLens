@@ -104,11 +104,12 @@
 
   .animated-gradient {
     background: linear-gradient(
-      45deg,
-      hsl(var(--background)),
+      -45deg,
+      hsl(var(--background)) 25%,
       hsl(var(--primary) / 0.2),
-      hsl(var(--background)),
-      hsl(var(--accent) / 0.2)
+      hsl(var(--background)) 50%,
+      hsl(var(--accent) / 0.2),
+      hsl(var(--background)) 75%
     );
     background-size: 400% 400%;
     animation: gradient-animation 20s ease infinite;

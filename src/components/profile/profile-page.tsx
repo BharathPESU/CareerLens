@@ -3,13 +3,14 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useFieldArray, useForm } from 'react-hook-form';
 import { PlusCircle, Trash2, ArrowLeft, ArrowRight, User, BookOpen, Briefcase, Star, MapPin, Loader2, Bot, School, Building, Sparkles } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import { doc, setDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 import {
   userProfileSchema,
   type UserProfile,
 } from '@/lib/types';
 import { defaultProfileData } from '@/lib/data';
-import { saveUserProfile } from '@/lib/actions';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
 
@@ -94,21 +95,26 @@ export function ProfilePage() {
         return;
     }
     setIsSubmitting(true);
-    const response = await saveUserProfile(user.uid, data);
-    setIsSubmitting(false);
+    try {
+      const userDocRef = doc(db, 'users', user.uid);
+      await setDoc(userDocRef, {
+        ...data,
+        updatedAt: new Date().toISOString(),
+      }, { merge: true });
 
-    if (response.success) {
       toast({
-        title: "Profile Saved!",
+        title: "Profile saved successfully ✅",
         description: "Your AI-powered career journey begins now.",
       });
       setCurrentStep(0);
-    } else {
+    } catch (error: any) {
        toast({
         variant: "destructive",
-        title: "Error Saving Profile",
-        description: response.error,
+        title: "Failed to save ❌",
+        description: error.message,
       });
+    } finally {
+        setIsSubmitting(false);
     }
   }
 
@@ -361,3 +367,5 @@ export function ProfilePage() {
     </div>
   );
 }
+
+    

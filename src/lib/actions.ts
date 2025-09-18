@@ -72,26 +72,6 @@ export async function getInterviewQuestions(
   }
 }
 
-export async function saveUserProfile(
-  userId: string,
-  profileData: UserProfile
-): Promise<{ success: boolean; error?: string }> {
-  try {
-    if (!userId) {
-      throw new Error("User is not authenticated.");
-    }
-    const userDocRef = doc(db, 'users', userId);
-    await setDoc(userDocRef, {
-      ...profileData,
-      updatedAt: new Date().toISOString(),
-    }, { merge: true });
-    return { success: true };
-  } catch (error: any) {
-    console.error('Error saving profile:', error);
-    return { success: false, error: error.message || 'Failed to save user profile.' };
-  }
-}
-
 export async function getUserProfile(
     userId: string
 ): Promise<{ success: boolean; data?: UserProfile, error?: string}> {
@@ -111,3 +91,5 @@ export async function getUserProfile(
         return { success: false, error: error.message || "Failed to fetch user profile." };
     }
 }
+
+    

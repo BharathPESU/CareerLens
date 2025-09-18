@@ -1,3 +1,4 @@
+
 'use client';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Logo } from '@/components/icons';
@@ -50,7 +51,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <>
       <Nav handleLogout={handleLogout} isLoggingOut={isLoggingOut} user={user} />
-      <main className={`flex-1 overflow-auto ${!isMobile ? 'mr-[224px]' : 'pb-24'}`}>
+      <main className={`flex-1 overflow-auto ${!isMobile ? 'mr-[224px]' : 'pb-28'}`}>
         {children}
       </main>
     </>

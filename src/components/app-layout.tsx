@@ -1,14 +1,5 @@
 'use client';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarHeader,
-  SidebarInset,
-  SidebarProvider,
-  SidebarTrigger,
-  SidebarFooter,
-} from '@/components/ui/sidebar';
 import { Logo } from '@/components/icons';
 import { Nav } from '@/components/nav';
 import { useAuth } from '@/hooks/use-auth';
@@ -17,12 +8,14 @@ import { useEffect, useState } from 'react';
 import { Loader2, LogOut } from 'lucide-react';
 import { Button } from './ui/button';
 import { useToast } from '@/hooks/use-toast';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const { user, loading, logOut } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     if (!loading && !user) {
@@ -55,38 +48,11 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <SidebarProvider>
-      <Sidebar variant="inset" side="left" collapsible="icon">
-        <SidebarHeader>
-          <div className="flex items-center gap-2">
-            <Logo />
-            <span className="text-xl font-semibold font-headline">CareerLens</span>
-          </div>
-        </SidebarHeader>
-        <SidebarContent>
-          <Nav />
-        </SidebarContent>
-        <SidebarFooter>
-          <div className="flex items-center gap-3 p-2">
-            <Avatar className="h-10 w-10 border-2 border-primary/50">
-              <AvatarImage src={user.photoURL || `https://picsum.photos/seed/${user.uid}/40/40`} />
-              <AvatarFallback>{user.email?.[0].toUpperCase() || 'U'}</AvatarFallback>
-            </Avatar>
-            <div className="flex flex-col overflow-hidden">
-              <span className="font-semibold text-sm truncate">{user.displayName || user.email}</span>
-              <span className="text-xs text-muted-foreground truncate">
-                {user.email}
-              </span>
-            </div>
-            <Button variant="ghost" size="icon" onClick={handleLogout} disabled={isLoggingOut} className="ml-auto">
-              <LogOut className="w-4 h-4"/>
-            </Button>
-          </div>
-        </SidebarFooter>
-      </Sidebar>
-      <SidebarInset>
-        <main className="flex-1 overflow-auto">{children}</main>
-      </SidebarInset>
-    </SidebarProvider>
+    <>
+      <Nav handleLogout={handleLogout} isLoggingOut={isLoggingOut} user={user} />
+      <main className={`flex-1 overflow-auto ${!isMobile ? 'mr-[224px]' : 'pb-24'}`}>
+        {children}
+      </main>
+    </>
   );
 }

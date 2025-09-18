@@ -4,8 +4,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useFieldArray, useForm } from 'react-hook-form';
 import { PlusCircle, Trash2, ArrowLeft, ArrowRight, User, BookOpen, Briefcase, Star, MapPin, Loader2, Bot, School, Building, Sparkles } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { doc, setDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
 
 import {
   userProfileSchema,
@@ -30,6 +28,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { Skeleton } from '../ui/skeleton';
 
 const steps = [
     { id: 'personal', title: 'Personal Info', icon: <User className="w-6 h-6" />, description: "Let's start with the basics." },
@@ -39,11 +38,55 @@ const steps = [
     { id: 'interests', title: 'Career Goals', icon: <MapPin className="w-6 h-6" />, description: "What are your aspirations?" },
 ];
 
+
+// This function now handles fetching the profile from our new API route
+async function fetchProfile(userId: string): Promise<{ success: boolean; data?: UserProfile, error?: string}> {
+    try {
+        const res = await fetch(`/api/profile?userId=${userId}`);
+        if (!res.ok) {
+            const err = await res.json();
+            // This error comes directly from the server's response
+            throw new Error(err.error || 'Failed to fetch profile');
+        }
+        
+        const data = await res.json();
+        return { success: true, data };
+
+    } catch (err: any) {
+        console.error("fetchProfile error:", err.message);
+        return { success: false, error: err.message };
+    }
+}
+
+// This function now handles saving the profile via our new API route
+async function saveProfile(userId: string, data: UserProfile): Promise<{ success: boolean; error?: string}> {
+     try {
+        const res = await fetch('/api/profile', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId, ...data }),
+        });
+
+        if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err.error || 'Failed to save profile');
+        }
+
+        return { success: true };
+
+    } catch (err: any) {
+        console.error("saveProfile error:", err.message);
+        return { success: false, error: err.message };
+    }
+}
+
+
 export function ProfilePage() {
   const { toast } = useToast();
   const { user } = useAuth();
   const [currentStep, setCurrentStep] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   const form = useForm<UserProfile>({
     resolver: zodResolver(userProfileSchema),
@@ -52,11 +95,35 @@ export function ProfilePage() {
   });
 
   useEffect(() => {
-    if (user) {
-      form.setValue('name', user.displayName || '');
-      form.setValue('email', user.email || '');
-    }
-  }, [user, form]);
+    if (!user?.uid) return;
+
+    const loadProfile = async () => {
+        setIsLoading(true);
+        const { data, error } = await fetchProfile(user.uid);
+        
+        if (data) {
+            form.reset(data); // Populate the form with fetched data
+        } else if (error && error.includes('not found')) {
+            // New user, just use default values and set basic info
+            form.setValue('name', user.displayName || '');
+            form.setValue('email', user.email || '');
+            toast({
+              title: "Welcome!",
+              description: "Let's set up your profile to get started.",
+            })
+        }
+        else if (error) {
+            toast({
+                variant: "destructive",
+                title: "Failed to load profile",
+                description: error,
+            });
+        }
+        setIsLoading(false);
+    };
+
+    loadProfile();
+  }, [user, form, toast]);
 
 
   const {
@@ -96,26 +163,21 @@ export function ProfilePage() {
         return;
     }
     setIsSubmitting(true);
-    try {
-      const userDocRef = doc(db, 'users', user.uid);
-      await setDoc(userDocRef, {
-        ...data,
-        updatedAt: new Date().toISOString(),
-      }, { merge: true });
+    const { success, error } = await saveProfile(user.uid, data);
+    setIsSubmitting(false);
 
+    if (success) {
       toast({
         title: "Profile saved successfully ✅",
         description: "Your AI-powered career journey begins now.",
       });
       setCurrentStep(0);
-    } catch (error: any) {
+    } else {
        toast({
         variant: "destructive",
         title: "Failed to save ❌",
-        description: error.message,
+        description: error,
       });
-    } finally {
-        setIsSubmitting(false);
     }
   }
 
@@ -131,6 +193,28 @@ export function ProfilePage() {
   };
 
   const progress = ((currentStep + 1) / steps.length) * 100;
+
+  if (isLoading) {
+    return (
+        <div className="p-4 md:p-8 max-w-4xl mx-auto space-y-8">
+             <div className="mb-8">
+                <div className="flex items-center justify-between mb-4">
+                    <Skeleton className="h-10 w-1/2" />
+                    <Skeleton className="h-6 w-24" />
+                </div>
+                <Skeleton className="h-2 w-full" />
+            </div>
+            <Card className="glass-card rounded-2xl">
+                <CardHeader><Skeleton className="h-14 w-3/4" /></CardHeader>
+                <CardContent className="space-y-6">
+                    <Skeleton className="h-10 w-full" />
+                    <Skeleton className="h-10 w-full" />
+                    <Skeleton className="h-10 w-2/3" />
+                </CardContent>
+            </Card>
+        </div>
+    )
+  }
 
   return (
     <div className="p-4 md:p-8 max-w-4xl mx-auto">
@@ -355,7 +439,7 @@ export function ProfilePage() {
                         {isSubmitting ? (
                           <>
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Analyzing Profile...
+                            Saving Profile...
                           </>
                         ) : (
                           "Finish & Save Profile"

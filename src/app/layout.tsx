@@ -29,8 +29,8 @@ export default function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <body className="font-body antialiased bg-background" suppressHydrationWarning>
-        <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-background via-background to-slate-900/50 -z-10" />
+      <body className="font-body antialiased" suppressHydrationWarning>
+        <div className="animated-gradient absolute top-0 left-0 w-full h-full -z-10" />
         <AuthProvider>
             {isAuthPage ? (
             <div className="flex min-h-screen items-center justify-center">{children}</div>

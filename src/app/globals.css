@@ -101,4 +101,28 @@
   .text-glow {
     text-shadow: 0 0 8px hsl(var(--primary) / 0.5), 0 0 20px hsl(var(--primary) / 0.2);
   }
+
+  .animated-gradient {
+    background: linear-gradient(
+      45deg,
+      hsl(var(--background)),
+      hsl(var(--primary) / 0.2),
+      hsl(var(--background)),
+      hsl(var(--accent) / 0.2)
+    );
+    background-size: 400% 400%;
+    animation: gradient-animation 20s ease infinite;
+  }
+
+  @keyframes gradient-animation {
+    0% {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+    100% {
+      background-position: 0% 50%;
+    }
+  }
 }

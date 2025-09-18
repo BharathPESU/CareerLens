@@ -1,56 +1,67 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Loader2, Sparkles, FileText } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
-import { getResumeJson } from '@/lib/actions';
+import { getResumeJson, getUserProfile } from '@/lib/actions';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { defaultProfileData } from '@/lib/data';
 import { ResumePreview } from './resume-preview';
-import type { GenerateResumeFromJsonOutput } from '@/ai/flows/generate-resume-from-json';
 import type { UserProfile } from '@/lib/types';
-
+import { useAuth } from '@/hooks/use-auth';
 
 export function ResumePage() {
     const { toast } = useToast();
+    const { user } = useAuth();
     const [isLoading, setIsLoading] = useState(false);
     const [resumeData, setResumeData] = useState<any | null>(null);
+    const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+
+    useEffect(() => {
+        if (!user) return;
+
+        const fetchProfile = async () => {
+            const { data } = await getUserProfile(user.uid);
+            if (data) {
+                setUserProfile(data as UserProfile);
+            }
+        };
+
+        fetchProfile();
+    }, [user]);
+
 
     async function handleGenerateResume() {
+        if (!userProfile) {
+            toast({
+                variant: "destructive",
+                title: "Profile Not Found",
+                description: "Please complete your profile before generating a resume.",
+            });
+            return;
+        }
+
         setIsLoading(true);
         setResumeData(null);
         
-        // This is a placeholder for fetching the real user profile.
-        // In a real app, you would fetch this from your state management or an API.
-        const userProfile: UserProfile = {
-            name: "Alex Doe",
-            email: "alex.doe@example.com",
-            preferences: { location: "San Francisco, CA", remote: true, industries: ["Tech"] },
-            education: [{ degree: "B.Sc. Computer Science", field: "Computer Science", year: "2020" }],
-            experience: [{ role: "Software Engineer", company: "TechCorp", years: "3", skills: ["React", "Node.js"] }],
-            skills: [{ name: "TypeScript", proficiency: "Expert" }],
-            interests: ["AI", "Design"],
-        };
-
         const inputForAI = {
             name: userProfile.name,
             email: userProfile.email,
-            phone: "(123) 456-7890", // phone is not in the new schema, adding placeholder
+            phone: "(123) 456-7890", // phone is not in the schema, adding placeholder
             linkedin: "linkedin.com/in/alexdoe", // not in schema
             github: "github.com/alexdoe", // not in schema
-            summary: "A passionate software engineer with 3 years of experience.", // not in schema
+            summary: `A passionate professional with experience in various roles. Skilled in ${userProfile.skills.map(s => s.name).join(', ')}. Interested in ${userProfile.interests.join(', ')}.`,
             experience: userProfile.experience.map(exp => ({
                 title: exp.role,
                 company: exp.company,
-                startDate: '2021', // not in schema
+                startDate: `approx. ${exp.years} years ago`,
                 endDate: 'Present',
-                description: `Worked as a ${exp.role} for ${exp.years} years, using skills like ${exp.skills.join(', ')}.`,
+                description: `Key achievements in the role of ${exp.role} at ${exp.company}.`,
             })),
             education: userProfile.education.map(edu => ({
                 institution: 'A Great University', // not in schema
                 degree: `${edu.degree} in ${edu.field}`,
-                startDate: '2016',
+                startDate: 'Previous',
                 endDate: edu.year,
                 description: '',
             })),
@@ -98,7 +109,7 @@ export function ResumePage() {
                     <CardDescription>Click the button below to use the data from your profile to generate a new resume. Any unsaved changes on your profile page will not be included.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                     <Button onClick={handleGenerateResume} disabled={isLoading}>
+                     <Button onClick={handleGenerateResume} disabled={isLoading || !userProfile}>
                         {isLoading ? (
                         <>
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />

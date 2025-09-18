@@ -1,7 +1,7 @@
 
 'use server';
 
-import { doc, setDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { generateCareerRecommendations as genkitGenerateCareerRecommendations } from '@/ai/flows/generate-career-recommendations';
 import { performSkillGapAnalysis } from '@/ai/flows/perform-skill-gap-analysis';
@@ -90,4 +90,24 @@ export async function saveUserProfile(
     console.error('Error saving profile:', error);
     return { success: false, error: error.message || 'Failed to save user profile.' };
   }
+}
+
+export async function getUserProfile(
+    userId: string
+): Promise<{ success: boolean; data?: UserProfile, error?: string}> {
+    try {
+        if (!userId) {
+            throw new Error("User ID is required.");
+        }
+        const userDocRef = doc(db, 'users', userId);
+        const userDoc = await getDoc(userDocRef);
+        if (userDoc.exists()) {
+            return { success: true, data: userDoc.data() as UserProfile };
+        } else {
+            return { success: false, error: "User profile not found." };
+        }
+    } catch (error: any) {
+        console.error("Error fetching user profile:", error);
+        return { success: false, error: error.message || "Failed to fetch user profile." };
+    }
 }

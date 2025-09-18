@@ -40,8 +40,8 @@ export function RoadmapPage() {
     setResult(null);
     const payload = {
       ...values,
-      userSkills: values.userSkills.split(',').map(s => s.trim()),
-      missingSkills: values.missingSkills.split(',').map(s => s.trim()),
+      userSkills: values.userSkills.split(',').map(s => s.trim()).filter(Boolean),
+      missingSkills: values.missingSkills.split(',').map(s => s.trim()).filter(Boolean),
     };
     const response = await getPersonalizedRoadmap(payload);
     setIsLoading(false);
@@ -64,7 +64,7 @@ export function RoadmapPage() {
         <p className="text-muted-foreground">Your 3-month journey to a new career, planned by AI.</p>
       </div>
 
-      <Card>
+      <Card className="glass-card">
         <CardHeader>
           <CardTitle>Define Your Goal</CardTitle>
           <CardDescription>Enter your target career and skills to generate a roadmap.</CardDescription>
@@ -111,7 +111,7 @@ export function RoadmapPage() {
                   </FormItem>
                 )}
               />
-              <Button type="submit" disabled={isLoading}>
+              <Button type="submit" disabled={isLoading} className="bg-gradient-to-r from-primary to-accent">
                 {isLoading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -131,30 +131,39 @@ export function RoadmapPage() {
 
       {result && (
         <div className="space-y-6">
-            <h2 className="text-2xl font-bold">Your 12-Week Learning Plan</h2>
-            <Accordion type="single" collapsible className="w-full">
+            <h2 className="text-2xl font-bold text-glow">Your 12-Week Learning Plan</h2>
+            <Accordion type="single" collapsible className="w-full space-y-4" defaultValue="item-0">
             {result.learningPlan.map((week, index) => (
-                <AccordionItem value={`item-${index}`} key={index}>
-                <AccordionTrigger className="text-lg font-semibold hover:no-underline">Week {week.week}: {week.topic}</AccordionTrigger>
-                <AccordionContent className="p-4 space-y-4 bg-muted/30 rounded-b-lg">
-                    <h4 className="font-semibold">Resources:</h4>
-                    <ul className="space-y-3">
-                        {week.resources.map((resource, rIndex) => (
-                            <li key={rIndex} className="flex items-center justify-between p-3 rounded-md border bg-background">
-                                <div>
-                                    <p className="font-medium">{resource.name}</p>
-                                    <a href={resource.url} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline flex items-center gap-1">
-                                        <LinkIcon className="w-3 h-3" />
-                                        {resource.url}
-                                    </a>
-                                </div>
-                                <Badge variant={resource.type === 'free' ? 'secondary' : 'default'}>
-                                    {resource.type === 'paid' && <DollarSign className="w-3 h-3 mr-1"/>}
-                                    {resource.type}
-                                </Badge>
-                            </li>
-                        ))}
-                    </ul>
+                <AccordionItem value={`item-${index}`} key={index} className="glass-card rounded-2xl border-0">
+                <AccordionTrigger className="text-xl font-semibold hover:no-underline p-6">
+                    <div className="flex items-center gap-4">
+                        <span className="flex items-center justify-center w-12 h-12 font-bold text-primary bg-primary/10 rounded-xl shrink-0 border-2 border-primary/20">
+                            {week.week}
+                        </span>
+                        <span className="text-left">{week.topic}</span>
+                    </div>
+                </AccordionTrigger>
+                <AccordionContent className="p-6 pt-0">
+                    <div className="space-y-4 border-l-2 border-primary/30 pl-6 ml-6">
+                        <h4 className="font-semibold text-lg">Recommended Resources:</h4>
+                        <ul className="space-y-4">
+                            {week.resources.map((resource, rIndex) => (
+                                <li key={rIndex} className="flex items-start justify-between p-4 rounded-lg border bg-background/50 glass-card transition-all duration-300 hover:border-primary/50">
+                                    <div className="space-y-1">
+                                        <p className="font-semibold text-base">{resource.name}</p>
+                                        <a href={resource.url} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline flex items-center gap-1.5 transition-colors">
+                                            <LinkIcon className="w-4 h-4" />
+                                            <span>Visit Resource</span>
+                                        </a>
+                                    </div>
+                                    <Badge variant={resource.type === 'free' ? 'secondary' : 'default'} className="capitalize h-fit">
+                                        {resource.type === 'paid' && <DollarSign className="w-3 h-3 mr-1"/>}
+                                        {resource.type}
+                                    </Badge>
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
                 </AccordionContent>
                 </AccordionItem>
             ))}

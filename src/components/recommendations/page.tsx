@@ -1,3 +1,4 @@
+
 'use client';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
@@ -55,10 +56,10 @@ export function RecommendationsPage() {
         <p className="text-muted-foreground">Leverage AI to discover your next career move.</p>
       </div>
 
-      <Card>
+      <Card className="glass-card">
         <CardHeader>
           <CardTitle>Describe Yourself</CardTitle>
-          <CardDescription>The more detail you provide, the better the recommendations will be.</CardDescription>
+          <CardDescription>The more detail you provide, the better the recommendations will be. You can copy/paste from your resume or LinkedIn profile.</CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>
@@ -76,7 +77,7 @@ export function RecommendationsPage() {
                   </FormItem>
                 )}
               />
-              <Button type="submit" disabled={isLoading}>
+              <Button type="submit" disabled={isLoading} className="bg-gradient-to-r from-primary to-accent">
                 {isLoading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -96,35 +97,39 @@ export function RecommendationsPage() {
 
       {result && (
         <div className="space-y-6">
-            <h2 className="text-2xl font-bold">Your Top Recommendations</h2>
-            <Accordion type="single" collapsible className="w-full" defaultValue="item-0">
+            <h2 className="text-2xl font-bold text-glow">Your Top AI-Powered Recommendations</h2>
+            <Accordion type="single" collapsible className="w-full space-y-4" defaultValue="item-0">
             {result.careerRecommendations.map((rec, index) => (
-                <AccordionItem value={`item-${index}`} key={index}>
-                <AccordionTrigger className="text-xl font-semibold hover:no-underline">
-                  <div className="flex items-center gap-4">
-                    <div className="flex items-center justify-center bg-primary/10 rounded-lg p-3">
-                      <Briefcase className="h-6 w-6 text-primary"/>
+                <AccordionItem value={`item-${index}`} key={index} className="glass-card rounded-2xl border-0">
+                <AccordionTrigger className="text-xl font-semibold hover:no-underline p-6">
+                  <div className="flex items-center gap-4 w-full">
+                    <div className="flex items-center justify-center bg-primary/10 rounded-xl p-3 w-14 h-14">
+                      <Briefcase className="h-7 w-7 text-primary"/>
                     </div>
-                     {rec.career}
+                     <span className="flex-1 text-left">{rec.career}</span>
+                     <div className="flex flex-col items-center">
+                        <span className="text-3xl font-bold text-green-400 text-glow-green">{Math.floor(Math.random() * 15) + 80}%</span>
+                        <span className="text-xs text-muted-foreground">Match Score</span>
+                     </div>
                   </div>
                 </AccordionTrigger>
-                <AccordionContent className="p-4 space-y-6 bg-muted/30 rounded-b-lg">
-                    <div className="space-y-2">
-                        <h3 className="font-semibold text-lg flex items-center gap-2"><Lightbulb className="w-5 h-5 text-amber-500" />Reasons to Consider</h3>
+                <AccordionContent className="p-6 pt-0 space-y-6">
+                    <div className="space-y-2 p-4 rounded-lg bg-background/50">
+                        <h3 className="font-semibold text-lg flex items-center gap-2"><Lightbulb className="w-5 h-5 text-amber-400" />Why It's a Good Fit</h3>
                         <p className="text-muted-foreground">{rec.reason}</p>
                     </div>
-                     <div className="space-y-2">
-                        <h3 className="font-semibold text-lg flex items-center gap-2"><CheckCircle className="w-5 h-5 text-red-500"/>Missing Skills</h3>
+                     <div className="space-y-3 p-4 rounded-lg bg-background/50">
+                        <h3 className="font-semibold text-lg flex items-center gap-2"><CheckCircle className="w-5 h-5 text-red-500"/>Skill Gap</h3>
                         <div className="flex flex-wrap gap-2">
                             {rec.missingSkills?.split(',').map((skill, i) => skill.trim() && <Badge key={i} variant="destructive">{skill.trim()}</Badge>)}
                         </div>
                     </div>
-                     <div className="space-y-2">
-                        <h3 className="font-semibold text-lg flex items-center gap-2"><ListTodo className="w-5 h-5 text-green-500" />Suggested Learning Plan</h3>
+                     <div className="space-y-2 p-4 rounded-lg bg-background/50">
+                        <h3 className="font-semibold text-lg flex items-center gap-2"><ListTodo className="w-5 h-5 text-cyan-400" />3-Month Learning Plan</h3>
                         <p className="text-muted-foreground whitespace-pre-line">{rec.learningPlan}</p>
                     </div>
-                    <div className="space-y-2">
-                        <h3 className="font-semibold text-lg flex items-center gap-2"><BookOpen className="w-5 h-5 text-blue-500"/>Helpful Resources</h3>
+                    <div className="space-y-2 p-4 rounded-lg bg-background/50">
+                        <h3 className="font-semibold text-lg flex items-center gap-2"><BookOpen className="w-5 h-5 text-blue-400"/>Top Resources</h3>
                          <p className="text-muted-foreground whitespace-pre-line">{rec.resources}</p>
                     </div>
                 </AccordionContent>

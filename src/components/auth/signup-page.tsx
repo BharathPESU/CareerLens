@@ -23,6 +23,11 @@ import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { Logo } from '@/components/icons';
 import Link from 'next/link';
+import { useAuth } from '@/hooks/use-auth';
+import { useToast } from '@/hooks/use-toast';
+import { useRouter } from 'next/navigation';
+import { useState } from 'react';
+import { Loader2 } from 'lucide-react';
 
 const formSchema = z.object({
   email: z.string().email('Please enter a valid email address.'),
@@ -34,6 +39,11 @@ const formSchema = z.object({
 });
 
 export function SignupPage() {
+  const { signUp, googleSignIn } = useAuth();
+  const { toast } = useToast();
+  const router = useRouter();
+  const [isLoading, setIsLoading] = useState(false);
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -43,14 +53,36 @@ export function SignupPage() {
     },
   });
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    console.log('Sign up submitted', values);
-    // TODO: Implement Firebase sign up logic
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    setIsLoading(true);
+    try {
+      await signUp(values.email, values.password);
+      router.push('/');
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Sign Up Failed",
+        description: error.message,
+      });
+    } finally {
+        setIsLoading(false);
+    }
   }
   
-  function handleGoogleSignIn() {
-    console.log('Sign in with Google');
-    // TODO: Implement Firebase Google Sign-In
+  async function handleGoogleSignIn() {
+    setIsLoading(true);
+    try {
+      await googleSignIn();
+      router.push('/');
+    } catch (error: any) {
+        toast({
+            variant: "destructive",
+            title: "Google Sign-In Failed",
+            description: error.message,
+        });
+    } finally {
+        setIsLoading(false);
+    }
   }
 
   return (
@@ -72,7 +104,7 @@ export function SignupPage() {
                 <FormItem>
                   <FormLabel>Email</FormLabel>
                   <FormControl>
-                    <Input type="email" placeholder="m@example.com" {...field} />
+                    <Input type="email" placeholder="m@example.com" {...field} disabled={isLoading}/>
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -85,7 +117,7 @@ export function SignupPage() {
                 <FormItem>
                   <FormLabel>Password</FormLabel>
                   <FormControl>
-                    <Input type="password" placeholder="••••••••" {...field} />
+                    <Input type="password" placeholder="••••••••" {...field} disabled={isLoading}/>
                   </FormControl>
                    <FormMessage />
                 </FormItem>
@@ -98,13 +130,14 @@ export function SignupPage() {
                 <FormItem>
                   <FormLabel>Confirm Password</FormLabel>
                   <FormControl>
-                    <Input type="password" placeholder="••••••••" {...field} />
+                    <Input type="password" placeholder="••••••••" {...field} disabled={isLoading}/>
                   </FormControl>
                    <FormMessage />
                 </FormItem>
               )}
             />
-            <Button type="submit" className="w-full">
+            <Button type="submit" className="w-full" disabled={isLoading}>
+              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Create Account
             </Button>
           </form>
@@ -120,8 +153,10 @@ export function SignupPage() {
             </span>
           </div>
         </div>
-        <Button variant="outline" className="w-full" onClick={handleGoogleSignIn}>
-          {/* Add Google Icon SVG here */}
+        <Button variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={isLoading}>
+          {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 
+            <svg className="w-4 h-4 mr-2" aria-hidden="true" focusable="false" data-prefix="fab" data-icon="google" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 488 512"><path fill="currentColor" d="M488 261.8C488 403.3 391.1 504 248 504 110.8 504 0 393.2 0 256S110.8 8 248 8c66.8 0 126 21.2 173.4 58.2L359.3 129.5C330.7 104 292.3 88 248 88c-73.2 0-132.3 59.2-132.3 132.3s59.1 132.3 132.3 132.3c78.2 0 110.3-55.8 114.3-85.3H248v-63.7h238.5c2.4 12.4 3.8 25.8 3.8 39.5z"></path></svg>
+          }
           Sign Up with Google
         </Button>
       </CardContent>

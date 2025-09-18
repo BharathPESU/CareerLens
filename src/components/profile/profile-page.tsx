@@ -11,6 +11,7 @@ import {
 import { defaultProfileData } from '@/lib/data';
 import { saveUserProfile } from '@/lib/actions';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/use-auth';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -38,6 +39,7 @@ const steps = [
 
 export function ProfilePage() {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [currentStep, setCurrentStep] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -75,8 +77,16 @@ export function ProfilePage() {
   });
 
   async function onSubmit(data: UserProfile) {
+    if (!user) {
+        toast({
+            variant: "destructive",
+            title: "Error",
+            description: "You must be logged in to save your profile.",
+        });
+        return;
+    }
     setIsSubmitting(true);
-    const response = await saveUserProfile(data);
+    const response = await saveUserProfile(user.uid, data);
     setIsSubmitting(false);
 
     if (response.success) {

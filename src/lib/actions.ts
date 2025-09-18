@@ -73,11 +73,13 @@ export async function getInterviewQuestions(
 }
 
 export async function saveUserProfile(
+  userId: string,
   profileData: UserProfile
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    // In a real app, you'd get the userId from the authenticated session
-    const userId = 'guest-user'; 
+    if (!userId) {
+      throw new Error("User is not authenticated.");
+    }
     const userDocRef = doc(db, 'users', userId);
     await setDoc(userDocRef, {
       ...profileData,

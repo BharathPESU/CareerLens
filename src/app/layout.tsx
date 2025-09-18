@@ -1,9 +1,11 @@
 
+
 'use client';
 import { usePathname } from 'next/navigation';
 import './globals.css';
 import { AppLayout } from '@/components/app-layout';
 import { Toaster } from '@/components/ui/toaster';
+import { AuthProvider } from '@/hooks/use-auth';
 
 // export const metadata: Metadata = {
 //   title: 'CareerLens',
@@ -30,12 +32,14 @@ export default function RootLayout({
         />
       </head>
       <body className="font-body antialiased" suppressHydrationWarning>
-        {isAuthPage ? (
-          <div className="flex min-h-screen items-center justify-center bg-background">{children}</div>
-        ) : (
-          <AppLayout>{children}</AppLayout>
-        )}
-        <Toaster />
+        <AuthProvider>
+            {isAuthPage ? (
+            <div className="flex min-h-screen items-center justify-center bg-background">{children}</div>
+            ) : (
+            <AppLayout>{children}</AppLayout>
+            )}
+            <Toaster />
+        </AuthProvider>
       </body>
     </html>
   );

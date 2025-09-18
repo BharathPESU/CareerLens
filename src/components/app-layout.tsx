@@ -11,8 +11,29 @@ import {
 } from '@/components/ui/sidebar';
 import { Logo } from '@/components/icons';
 import { Nav } from '@/components/nav';
+import { useAuth }_from '@/hooks/use-auth';
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
+import { Loader2 } from 'lucide-react';
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!loading && !user) {
+      router.replace('/login');
+    }
+  }, [loading, user, router]);
+
+  if (loading || !user) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
   return (
     <SidebarProvider>
       <Sidebar>
@@ -28,13 +49,13 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         <SidebarFooter>
           <div className="flex items-center gap-3 p-2">
             <Avatar>
-              <AvatarImage src="https://picsum.photos/seed/user/40/40" />
-              <AvatarFallback>U</AvatarFallback>
+              <AvatarImage src={user.photoURL || `https://picsum.photos/seed/${user.uid}/40/40`} />
+              <AvatarFallback>{user.email?.[0].toUpperCase() || 'U'}</AvatarFallback>
             </Avatar>
             <div className="flex flex-col">
-              <span className="font-semibold text-sm">Guest User</span>
+              <span className="font-semibold text-sm">{user.displayName || 'User'}</span>
               <span className="text-xs text-muted-foreground">
-                guest@email.com
+                {user.email}
               </span>
             </div>
           </div>

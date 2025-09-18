@@ -91,5 +91,3 @@ export async function getUserProfile(
         return { success: false, error: error.message || "Failed to fetch user profile." };
     }
 }
-
-    

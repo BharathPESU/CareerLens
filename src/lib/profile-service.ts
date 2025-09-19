@@ -1,21 +1,11 @@
+
 'use client';
 
-import { doc, getDoc, setDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
-import { db } from '@/lib/firebaseClient';
 import type { UserProfile } from './types';
 import type { User } from 'firebase/auth';
 
-// Helper to safely convert Firestore Timestamps back to JS Date objects.
-const convertTimestamps = (data: any) => {
-    if (data && data.dob instanceof Timestamp) {
-        data.dob = data.dob.toDate();
-    }
-    // Add any other timestamp conversions here if needed
-    return data;
-}
-
 /**
- * Fetches a user's profile from Firestore.
+ * Fetches a user's profile from Firestore via the API route.
  * @param userId - The ID of the user.
  * @returns An object with success status, data, and an optional error message.
  */
@@ -26,24 +16,31 @@ export async function fetchProfile(
     return { success: false, error: 'User ID is required.' };
   }
   try {
-    const userDocRef = doc(db, 'users', userId);
-    const userDoc = await getDoc(userDocRef);
+    const res = await fetch(`/api/profile?uid=${userId}`);
+    const data = await res.json();
 
-    if (userDoc.exists()) {
-      const data = userDoc.data();
-      const convertedData = convertTimestamps(data);
-      return { success: true, data: convertedData as UserProfile };
-    } else {
-      return { success: true, data: null };
+    if (!res.ok) {
+      // If profile not found, it's not a critical error, just return null data.
+      if (res.status === 404) {
+        return { success: true, data: null };
+      }
+      throw new Error(data.error || 'Failed to fetch profile');
     }
+    
+    // The API route returns timestamps as strings, so we need to convert them back to Date objects.
+    if (data.dob) {
+      data.dob = new Date(data.dob);
+    }
+
+    return { success: true, data: data as UserProfile };
   } catch (err: any) {
-    console.error('Error fetching profile:', err);
+    console.error('Error fetching profile via API:', err);
     return { success: false, error: 'Failed to retrieve profile data from the server.' };
   }
 }
 
 /**
- * Creates or updates a user's profile in Firestore.
+ * Creates or updates a user's profile in Firestore via the API route.
  * @param userId - The ID of the user.
  * @param data - The user profile data to save.
  * @returns An object with success status and an optional error message.
@@ -52,78 +49,24 @@ export async function saveProfile(
   userId: string,
   data: Partial<UserProfile>
 ): Promise<{ success: boolean; error?: string }> {
-   if (!userId) {
+  if (!userId) {
     return { success: false, error: 'User ID is required to save the profile.' };
   }
   try {
-    const userDocRef = doc(db, 'users', userId);
-    const docSnap = await getDoc(userDocRef);
+    const res = await fetch('/api/profile', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ uid: userId, profileData: data }),
+    });
 
-    const profileData: Partial<UserProfile> & { updatedAt: any; createdAt?: any } = {
-        ...data,
-        updatedAt: serverTimestamp(),
-    };
-    
-    if (!docSnap.exists()) {
-        profileData.createdAt = serverTimestamp();
+    const responseData = await res.json();
+    if (!res.ok) {
+      throw new Error(responseData.error || 'Failed to save profile');
     }
 
-    await setDoc(userDocRef, profileData, { merge: true });
     return { success: true };
-  } catch (err: any)
-   {
-    console.error('Error saving profile:', err);
+  } catch (err: any) {
+    console.error('Error saving profile via API:', err);
     return { success: false, error: 'Failed to save profile changes to the server.' };
-  }
-}
-
-/**
- * Fetches a user's profile, creating it if it doesn't exist.
- * This is the primary function to use when a user logs in.
- * @param user - The Firebase Auth user object.
- * @returns The user's profile data.
- */
-export async function getOrCreateUserProfile(user: User): Promise<UserProfile> {
-  const userDocRef = doc(db, 'users', user.uid);
-  const docSnap = await getDoc(userDocRef);
-
-  if (docSnap.exists()) {
-    const data = docSnap.data();
-    return convertTimestamps(data) as UserProfile;
-  } else {
-    // Document doesn't exist, create it.
-    const newUserProfile: UserProfile = {
-      name: user.displayName || '',
-      email: user.email || '',
-      phone: '',
-      dob: undefined,
-      gender: '',
-      photoURL: user.photoURL || '',
-      linkedin: '',
-      github: '',
-      summary: '',
-      careerGoals: '',
-      education: [],
-      experience: [],
-      skills: [],
-      interests: [],
-      preferences: {
-        location: '',
-        remote: false,
-        industries: [],
-      },
-    };
-
-    const profileDataToSave = {
-        ...newUserProfile,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-    };
-
-    await setDoc(userDocRef, profileDataToSave);
-
-    // We return the local object, which is equivalent to what's in the DB.
-    // The date fields will be undefined, which is fine for the initial state.
-    return newUserProfile;
   }
 }

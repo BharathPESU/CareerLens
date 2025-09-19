@@ -2,7 +2,7 @@
 'use client';
 
 import { db } from "./firebaseClient";
-import { doc, setDoc, Timestamp } from "firebase/firestore";
+import { doc, setDoc, Timestamp, getDoc } from "firebase/firestore";
 import type { UserProfile } from './types';
 
 /**

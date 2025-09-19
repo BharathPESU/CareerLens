@@ -87,10 +87,10 @@ export function ProfilePageV2() {
             });
         } else if (error) {
             toast({ variant: 'destructive', title: 'Could not load profile', description: 'Using default values.' });
-            form.reset({ email: user.email || '' });
+            form.reset({ name: user.displayName || '', email: user.email || '', phone: '', bio: '', linkedin: '', github: '', skills: [] });
         } else {
-             // New user, just set email
-            form.reset({ email: user.email || '' });
+             // New user, just set email and name
+            form.reset({ name: user.displayName || '', email: user.email || '', phone: '', bio: '', linkedin: '', github: '', skills: [] });
         }
         setIsFetching(false);
       });
@@ -311,3 +311,5 @@ export function ProfilePageV2() {
     </div>
   );
 }
+
+    

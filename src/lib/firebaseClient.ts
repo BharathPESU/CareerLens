@@ -1,8 +1,7 @@
-
 // src/lib/firebaseClient.ts
 import { initializeApp, getApps, getApp, FirebaseOptions } from "firebase/app";
 import { getAuth } from "firebase/auth";
-import { getFirestore, initializeFirestore } from "firebase/firestore";
+import { getFirestore } from "firebase/firestore";
 import { getAnalytics, isSupported } from "firebase/analytics";
 
 const firebaseConfig: FirebaseOptions = {
@@ -15,18 +14,13 @@ const firebaseConfig: FirebaseOptions = {
   measurementId: "G-WEF48JHJF9"
 };
 
-// Check for missing environment variables during build or server-side render
-if (!firebaseConfig.projectId) {
-  console.error("Firebase config is not set. Please check your .env file and ensure NEXT_PUBLIC_FIREBASE_PROJECT_ID is set.");
-}
-
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+
 const auth = getAuth(app);
-// Use initializeFirestore with long polling to avoid intermittent network issues in some environments
-const db = initializeFirestore(app, { experimentalForceLongPolling: true });
+const db = getFirestore(app);
 
 // Initialize Analytics only if it's supported on the client
-let analytics: any;
+let analytics: any = null;
 if (typeof window !== 'undefined') {
     isSupported().then(yes => {
         if (yes) {
@@ -34,6 +28,5 @@ if (typeof window !== 'undefined') {
         }
     });
 }
-
 
 export { app, auth, db, analytics };

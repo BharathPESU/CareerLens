@@ -99,14 +99,25 @@ export function ProfilePage() {
                 title: "Failed to load profile",
                 description: error,
             });
+            // Still set defaults so the page is usable
+            form.reset({
+                ...defaultProfileData,
+                name: user.displayName || '',
+                email: user.email || '',
+            });
         } else if (data) {
-            // Existing user, populate form with fetched data
-            form.reset(data);
+            // Existing user, populate form with fetched data but ensure email is from auth
+            form.reset({
+                ...data,
+                email: user.email || data.email || '',
+            });
         } else {
             // New user (data is null), use default values and set basic info
-            form.reset(defaultProfileData); // Ensure form is reset to defaults
-            form.setValue('name', user.displayName || '');
-            form.setValue('email', user.email || '');
+            form.reset({
+                ...defaultProfileData,
+                name: user.displayName || '',
+                email: user.email || '',
+            });
             toast({
               title: "Welcome!",
               description: "Let's set up your profile to get started.",
@@ -445,3 +456,5 @@ export function ProfilePage() {
     </div>
   );
 }
+
+    

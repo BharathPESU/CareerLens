@@ -14,16 +14,16 @@ const firebaseConfig: FirebaseOptions = {
   measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
 };
 
-// Check for missing environment variables
-if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
-  throw new Error("Firebase config is not set. Please check your .env file and ensure all NEXT_PUBLIC_FIREBASE_ variables are set.");
+// Check for missing environment variables during build or server-side render
+if (!firebaseConfig.projectId) {
+  throw new Error("Firebase config is not set. Please check your .env file and ensure NEXT_PUBLIC_FIREBASE_PROJECT_ID is set.");
 }
 
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-// Initialize Analytics only if it's supported
-const analytics = isSupported().then(yes => (yes ? getAnalytics(app) : null));
+// Initialize Analytics only if it's supported on the client
+const analytics = typeof window !== 'undefined' && isSupported().then(yes => (yes ? getAnalytics(app) : null));
 
 export { app, auth, db, analytics };

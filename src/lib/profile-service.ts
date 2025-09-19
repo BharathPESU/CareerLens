@@ -20,7 +20,7 @@ export async function fetchProfile(
     const data = await res.json();
 
     if (!res.ok) {
-      // API route handles not found by creating a default, so this is a real error.
+      // Pass the specific error from the API route back to the caller
       throw new Error(data.error || 'Failed to fetch profile');
     }
     
@@ -32,7 +32,8 @@ export async function fetchProfile(
     return { success: true, data: data as UserProfile };
   } catch (err: any) {
     console.error('Error fetching profile via API:', err);
-    return { success: false, error: 'Failed to retrieve profile data from the server.' };
+    // Return the specific error message from the catch block
+    return { success: false, error: err.message || 'Failed to retrieve profile data from the server.' };
   }
 }
 

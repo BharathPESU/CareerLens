@@ -1,4 +1,3 @@
-
 // src/lib/firebaseClient.ts
 import { initializeApp, getApps, getApp, FirebaseApp } from "firebase/app";
 import { getAuth, Auth } from "firebase/auth";
@@ -15,24 +14,25 @@ const firebaseConfig = {
   measurementId: "G-WEF48JHJF9"
 };
 
-// This ensures we have a single instance of the Firebase app and its services.
 let app: FirebaseApp;
 let auth: Auth;
 let db: Firestore;
 
 if (getApps().length === 0) {
   app = initializeApp(firebaseConfig);
-  // Force long-polling to avoid WebSocket issues in some environments (e.g., Cloud Workstations)
+} else {
+  app = getApp();
+}
+
+try {
+  db = getFirestore(app);
+} catch (e) {
   db = initializeFirestore(app, {
     experimentalForceLongPolling: true,
     cacheSizeBytes: CACHE_SIZE_UNLIMITED
   });
-  auth = getAuth(app);
-} else {
-  app = getApp();
-  // Ensure db and auth are also initialized from the existing app instance
-  db = getFirestore(app);
-  auth = getAuth(app);
 }
+
+auth = getAuth(app);
 
 export { app, auth, db };

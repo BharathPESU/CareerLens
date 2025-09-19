@@ -86,5 +86,3 @@ export async function saveProfile(
     return { success: false, error: 'Failed to save profile changes to the server.' };
   }
 }
-
-    

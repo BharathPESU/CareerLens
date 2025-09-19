@@ -50,8 +50,13 @@ export function ProfilePage() {
   });
 
   useEffect(() => {
-    // Only proceed when authentication is resolved and we have a user object.
-    if (authLoading || !user) {
+    if (authLoading) {
+      // Still waiting for auth state to resolve, do nothing.
+      return;
+    }
+    if (!user) {
+      // No user, probably will be redirected by AppLayout, but stop loading just in case.
+      setIsProfileLoading(false);
       return;
     }
 
@@ -65,28 +70,33 @@ export function ProfilePage() {
           title: "Failed to load profile",
           description: error,
         });
-        // Set form defaults even on error, but include user's basic info.
+        // Set defaults even on error, using auth info.
         form.reset({
           ...defaultProfileData,
           name: user.displayName || '',
           email: user.email || '',
         });
-      } else {
-        // If data exists, merge it with defaults. If not, use defaults.
-        // This ensures all form fields are controlled from the start.
+      } else if (data) {
+        // Profile exists, merge with defaults to ensure all fields are controlled.
         const mergedData = {
           ...defaultProfileData,
-          ...(data || {}),
-          name: data?.name || user.displayName || '',
-          email: data?.email || user.email || '',
+          ...data,
+          name: data.name || user.displayName || '',
+          email: data.email || user.email || '',
         };
         form.reset(mergedData);
-        if (!data) {
-          toast({
+      } else {
+        // No profile data exists, this is a new user.
+        toast({
             title: "Welcome!",
             description: "Let's set up your profile to get started.",
-          });
-        }
+        });
+        // Reset the form with defaults but populate basic info from auth.
+        form.reset({
+          ...defaultProfileData,
+          name: user.displayName || '',
+          email: user.email || '',
+        });
       }
       setIsProfileLoading(false);
     };
@@ -419,5 +429,3 @@ export function ProfilePage() {
     </div>
   );
 }
-
-    

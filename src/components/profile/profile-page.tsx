@@ -50,45 +50,45 @@ export function ProfilePage() {
   });
 
   useEffect(() => {
+    // Wait until the user object is available from the auth context.
     if (!user) {
-        // Still loading user or user not logged in.
-        // We will wait until the user object is available.
-        return;
+      return;
     }
 
     const loadProfile = async () => {
-        setIsLoading(true);
-        const { data, error } = await fetchProfile(user.uid);
-        
-        if (error) {
-             toast({
-                variant: "destructive",
-                title: "Failed to load profile",
-                description: error,
-            });
-            // Still set defaults so the page is usable
-            form.reset({
-                ...defaultProfileData,
-                name: user.displayName || '',
-                email: user.email || '',
-            });
-        } else {
-            const existingData = data || {};
-            const mergedData = {
-                ...defaultProfileData,
-                ...existingData,
-                name: existingData.name || user.displayName || '',
-                email: existingData.email || user.email || '',
-            };
-            form.reset(mergedData);
-            if (!data) {
-                 toast({
-                  title: "Welcome!",
-                  description: "Let's set up your profile to get started.",
-                });
-            }
+      setIsLoading(true);
+      const { data, error } = await fetchProfile(user.uid);
+      
+      if (error) {
+        toast({
+          variant: "destructive",
+          title: "Failed to load profile",
+          description: error,
+        });
+        // Set form defaults even on error, but include user's basic info.
+        form.reset({
+          ...defaultProfileData,
+          name: user.displayName || '',
+          email: user.email || '',
+        });
+      } else {
+        // If data exists, merge it with defaults. If not, use defaults.
+        // This ensures all form fields are controlled from the start.
+        const mergedData = {
+          ...defaultProfileData,
+          ...(data || {}),
+          name: data?.name || user.displayName || '',
+          email: data?.email || user.email || '',
+        };
+        form.reset(mergedData);
+        if (!data) {
+          toast({
+            title: "Welcome!",
+            description: "Let's set up your profile to get started.",
+          });
         }
-        setIsLoading(false);
+      }
+      setIsLoading(false);
     };
 
     loadProfile();
@@ -343,7 +343,7 @@ export function ProfilePage() {
                                     <FormLabel>Professional Interests</FormLabel>
                                     <FormDescription>What fields or technologies excite you? (comma-separated)</FormDescription>
                                     <FormControl>
-                                        <Input placeholder="AI, Quantum Computing, Design Systems" onChange={(e) => field.onChange(e.target.value.split(',').map(s => s.trim()))} value={Array.isArray(field.value) ? field.value.join(', ') : ''} />
+                                        <Input placeholder="AI, Quantum Computing, Design Systems" onChange={(e) => field.onChange(e.target.value.split(',').map(s => s.trim()))} value={field.value?.join(', ') || ''} />
                                     </FormControl>
                                     <div className="pt-2">
                                         {Array.isArray(field.value) && field.value.map((interest, index) => ( interest && <Badge key={index} variant="outline" className="mr-1 mb-1 border-primary/50 text-primary">{interest}</Badge>))}

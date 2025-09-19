@@ -1,11 +1,11 @@
+
 // src/lib/firebaseClient.ts
-import { initializeApp, getApps, getApp, FirebaseOptions } from "firebase/app";
-import { getAuth } from "firebase/auth";
-import { getFirestore, initializeFirestore, CACHE_SIZE_UNLIMITED } from "firebase/firestore";
-import { getAnalytics, isSupported } from "firebase/analytics";
+import { initializeApp, getApps, getApp, FirebaseApp } from "firebase/app";
+import { getAuth, Auth } from "firebase/auth";
+import { getFirestore, initializeFirestore, CACHE_SIZE_UNLIMITED, Firestore } from "firebase/firestore";
 
 // Your web app's Firebase configuration from the user
-const firebaseConfig: FirebaseOptions = {
+const firebaseConfig = {
   apiKey: "AIzaSyAZRQLIieXFytt1ztD8uE6TeaqeT4ggBAs",
   authDomain: "careerlens-1.firebaseapp.com",
   projectId: "careerlens-1",
@@ -15,25 +15,24 @@ const firebaseConfig: FirebaseOptions = {
   measurementId: "G-WEF48JHJF9"
 };
 
-// Initialize Firebase for SSR and prevent re-initialization on the client
-const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+// This ensures we have a single instance of the Firebase app and its services.
+let app: FirebaseApp;
+let auth: Auth;
+let db: Firestore;
 
-// Force long-polling to avoid WebSocket issues in some environments (e.g., Cloud Workstations)
-const db = initializeFirestore(app, {
-  experimentalForceLongPolling: true,
-  cacheSizeBytes: CACHE_SIZE_UNLIMITED
-});
-
-const auth = getAuth(app);
-
-// Initialize Analytics only if it's supported on the client-side
-let analytics: any = null;
-if (typeof window !== 'undefined') {
-    isSupported().then(yes => {
-        if (yes) {
-            analytics = getAnalytics(app);
-        }
-    });
+if (getApps().length === 0) {
+  app = initializeApp(firebaseConfig);
+  // Force long-polling to avoid WebSocket issues in some environments (e.g., Cloud Workstations)
+  db = initializeFirestore(app, {
+    experimentalForceLongPolling: true,
+    cacheSizeBytes: CACHE_SIZE_UNLIMITED
+  });
+  auth = getAuth(app);
+} else {
+  app = getApp();
+  // Ensure db and auth are also initialized from the existing app instance
+  db = getFirestore(app);
+  auth = getAuth(app);
 }
 
-export { app, auth, db, analytics };
+export { app, auth, db };

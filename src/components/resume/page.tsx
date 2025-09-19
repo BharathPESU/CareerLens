@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useEffect, useState } from 'react';
@@ -72,11 +73,7 @@ export function ResumePage() {
   const [result, setResult] = useState<any | null>(null);
   const [jobDesc, setJobDesc] = useState('');
 
-  const loadProfile = () => {
-    if (loadingProfile) {
-      toast({ title: 'Still loading...', description: 'Profile data is currently being fetched.' });
-      return;
-    }
+  useEffect(() => {
     if (profile) {
       setManual(prev => ({
         ...prev,
@@ -90,16 +87,13 @@ export function ResumePage() {
         experience: (profile.experience || []).map(e => `- ${e.role} at ${e.company} (${e.years} years).`).join('\n'),
         education: (profile.education || []).map(e => `- ${e.degree} in ${e.field} from ${e.institution || 'University'} (${e.year}).`).join('\n'),
       }));
-      toast({ title: 'Profile Loaded', description: 'Your saved profile has been loaded into the form.' });
-    } else {
-       toast({ variant: "destructive", title: 'Profile Not Found', description: 'Please create a profile first.' });
     }
-  }
+  }, [profile]);
 
 
   async function generateResume() {
     if (!profile) {
-      toast({ variant: 'destructive', title: 'Profile Required', description: 'Please load your profile before generating a resume.' });
+      toast({ variant: 'destructive', title: 'Profile Required', description: 'Please complete your profile before generating a resume.' });
       return;
     }
     setGenerating(true);
@@ -128,17 +122,17 @@ export function ResumePage() {
         <div className="space-y-6">
           <motion.div initial={{ y: -8, opacity: 0 }} animate={{ y:0, opacity:1 }}>
             <h1 className="text-3xl font-bold font-headline text-glow">Futuristic Resume Builder</h1>
-            <p className="text-muted-foreground">Combine your saved profile with manual inputs and get an AI-optimized, ATS-checked resume.</p>
+            <p className="text-muted-foreground">Your profile is pre-loaded. Add manual details and get an AI-optimized, ATS-checked resume.</p>
           </motion.div>
 
           <Card className="glass-card">
             <CardHeader>
-                <CardTitle>1. Load Profile & Add Manual Details</CardTitle>
+                <CardTitle>1. Review Profile & Add Manual Details</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-                <Button onClick={loadProfile} disabled={loadingProfile}>
-                    {loadingProfile ? <><Loader2 className="mr-2 h-4 w-4 animate-spin"/>Loading...</> : 'Load Saved Profile Data'}
-                </Button>
+                <p className="text-sm text-muted-foreground">
+                    {loadingProfile ? 'Loading your profile...' : 'Your saved profile has been loaded. You can override or add details below.'}
+                </p>
 
                 <h3 className="text-lg font-semibold pt-4">Manual Inputs (merges with/overrides profile)</h3>
                 <Input placeholder="Full name" value={manual.fullName} onChange={e=>updateManual('fullName', e.target.value)} />
@@ -242,3 +236,5 @@ export function ResumePage() {
     </div>
   );
 }
+
+    

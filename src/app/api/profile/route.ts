@@ -1,9 +1,11 @@
+
 import { NextResponse, type NextRequest } from "next/server";
 import { adminDb } from "@/lib/firebaseAdmin";
 import { Timestamp } from "firebase-admin/firestore";
 
 // Helper to convert Firestore Timestamps to strings for JSON serialization
 const convertTimestampsToISO = (data: any) => {
+    if (!data) return null;
     const newData = { ...data };
     for (const key in newData) {
         if (newData[key] instanceof Timestamp) {
@@ -12,7 +14,6 @@ const convertTimestampsToISO = (data: any) => {
     }
     return newData;
 }
-
 
 export async function GET(req: NextRequest) {
   try {
@@ -23,10 +24,11 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Missing or invalid UID" }, { status: 400 });
     }
 
-    const doc = await adminDb.collection("users").doc(uid).get();
+    const docRef = adminDb.collection("users").doc(uid);
+    const docSnap = await docRef.get();
 
-    if (!doc.exists) {
-       // Create a default profile if it doesn't exist
+    if (!docSnap.exists) {
+       // If the profile doesn't exist, create a default one.
        const defaultProfile = {
             name: '',
             email: '',
@@ -51,15 +53,13 @@ export async function GET(req: NextRequest) {
             updatedAt: Timestamp.now(),
         };
 
-        // Try to pre-fill with auth data if possible, though not available here directly
-        // You might pass this from the client on first sign-up if needed
-
-        await adminDb.collection("users").doc(uid).set(defaultProfile);
+        await docRef.set(defaultProfile);
         const data = convertTimestampsToISO(defaultProfile);
         return NextResponse.json(data, { status: 200 });
     }
     
-    const data = convertTimestampsToISO(doc.data());
+    // If the profile exists, return its data.
+    const data = convertTimestampsToISO(docSnap.data());
     return NextResponse.json(data, { status: 200 });
 
   } catch (error: any) {

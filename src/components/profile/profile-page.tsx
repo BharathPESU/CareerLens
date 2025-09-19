@@ -44,7 +44,7 @@ const steps = [
 async function fetchProfile(userId: string): Promise<{ success: boolean; data?: UserProfile | null, error?: string}> {
     try {
         const userDocRef = doc(db, 'users', userId);
-        const userDoc = await userDocRef.get();
+        const userDoc = await getDoc(userDocRef);
 
         if (!userDoc.exists()) {
             return { success: true, data: null }; // Not an error, just no data

@@ -5,6 +5,7 @@ const nextConfig: NextConfig = {
   experimental: {
     allowedDevOrigins: [
       'https://6000-firebase-studio-1758115023330.cluster-w5vd22whf5gmav2vgkomwtc4go.cloudworkstations.dev',
+      'https://studio.firebase.google.com'
     ],
   },
   typescript: {

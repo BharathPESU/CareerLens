@@ -47,9 +47,11 @@ async function fetchProfile(userId: string): Promise<{ success: boolean; data?: 
         const userDoc = await getDoc(userDocRef);
 
         if (userDoc.exists()) {
-            return { success: true, data: userDoc.data() as UserProfile };
+            const data = userDoc.data() as UserProfile;
+            return { success: true, data };
         } else {
-            return { success: true, data: null }; // Not an error, just no data
+            // This is not an error, it just means the user is new.
+            return { success: true, data: null };
         }
     } catch (err: any) {
         console.error("fetchProfile error:", err.message);
@@ -60,6 +62,7 @@ async function fetchProfile(userId: string): Promise<{ success: boolean; data?: 
 async function saveProfile(userId: string, data: UserProfile): Promise<{ success: boolean; error?: string}> {
      try {
         const userDocRef = doc(db, 'users', userId);
+        // Use setDoc with merge:true to create or update the document.
         await setDoc(userDocRef, data, { merge: true });
         return { success: true };
     } catch (err: any) {

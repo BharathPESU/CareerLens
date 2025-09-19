@@ -28,7 +28,7 @@ export async function GET(req: NextRequest) {
     const docSnap = await docRef.get();
 
     if (!docSnap.exists) {
-       // If the profile doesn't exist, create and return a default one.
+       // If the profile doesn't exist, return a default one. It will be saved on the first POST.
        const defaultProfile = {
             name: '',
             email: '',
@@ -49,13 +49,10 @@ export async function GET(req: NextRequest) {
                 remote: false,
                 industries: [],
             },
-            createdAt: Timestamp.now(),
-            updatedAt: Timestamp.now(),
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
         };
-
-        // We don't save it here, we just return the shape. It will be saved on first POST.
-        const data = convertTimestampsToISO(defaultProfile);
-        return NextResponse.json(data, { status: 200 });
+        return NextResponse.json(defaultProfile, { status: 200 });
     }
     
     // If the profile exists, return its data.
@@ -92,7 +89,6 @@ export async function POST(req: NextRequest) {
     if (dataToSave.dob && typeof dataToSave.dob === 'string') {
         dataToSave.dob = Timestamp.fromDate(new Date(dataToSave.dob));
     }
-
 
     if (!docSnap.exists) {
         dataToSave.createdAt = Timestamp.now();

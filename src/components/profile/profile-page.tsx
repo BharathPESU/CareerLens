@@ -4,9 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useFieldArray, useForm } from 'react-hook-form';
 import { PlusCircle, Trash2, ArrowLeft, ArrowRight, User, School, Briefcase, Sparkles, MapPin, Loader2, Bot } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
 
-import { db } from '@/lib/firebaseClient';
 import {
   userProfileSchema,
   type UserProfile,
@@ -43,14 +41,12 @@ const steps = [
 
 async function fetchProfile(userId: string): Promise<{ success: boolean; data?: UserProfile | null, error?: string}> {
     try {
-        const userDocRef = doc(db, 'users', userId);
-        const userDoc = await getDoc(userDocRef);
-
-        if (!userDoc.exists()) {
-            return { success: true, data: null }; // Not an error, just no data
+        const response = await fetch(`/api/profile?userId=${userId}`);
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Failed to fetch profile');
         }
-        
-        const data = userDoc.data() as UserProfile;
+        const data = await response.json();
         return { success: true, data };
     } catch (err: any) {
         console.error("fetchProfile error:", err.message);
@@ -60,8 +56,15 @@ async function fetchProfile(userId: string): Promise<{ success: boolean; data?: 
 
 async function saveProfile(userId: string, data: UserProfile): Promise<{ success: boolean; error?: string}> {
      try {
-        const userDocRef = doc(db, 'users', userId);
-        await setDoc(userDocRef, data, { merge: true });
+        const response = await fetch('/api/profile', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId, ...data }),
+        });
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Failed to save profile');
+        }
         return { success: true };
     } catch (err: any) {
         console.error("saveProfile error:", err.message);
@@ -454,5 +457,3 @@ export function ProfilePage() {
     </div>
   );
 }
-
-    

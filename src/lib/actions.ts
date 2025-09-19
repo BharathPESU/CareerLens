@@ -69,12 +69,3 @@ export async function getInterviewQuestions(
     return { success: false, error: error.message || 'Failed to generate questions.' };
   }
 }
-
-// getUserProfile remains a server action, in case we need it for other server-side logic
-// But it is no longer used by the profile page.
-export async function getUserProfile(userId: string): Promise<{ success: boolean; data?: UserProfile; error?: string}> {
-  // This function would need to use the Admin SDK if it were to be used,
-  // but for now, we leave it as a placeholder.
-  console.warn("getUserProfile server action is not fully implemented and should not be used for client-side fetching.");
-  return { success: false, error: "Not implemented" };
-}

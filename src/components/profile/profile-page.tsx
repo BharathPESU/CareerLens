@@ -83,7 +83,10 @@ export function ProfilePage() {
   });
 
   useEffect(() => {
-    if (!user?.uid) return;
+    if (!user) {
+        // Still loading user or user not logged in
+        return;
+    }
 
     const loadProfile = async () => {
         setIsLoading(true);
@@ -124,7 +127,7 @@ export function ProfilePage() {
     };
 
     loadProfile();
-  }, [user, form, toast]);
+  }, [user]);
 
 
   const {

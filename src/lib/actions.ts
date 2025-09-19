@@ -63,7 +63,8 @@ export async function getInterviewQuestions(
   try {
     const result = await generateInterviewQuestions(input);
     return { success: true, data: result };
-  } catch (error: any) {
+  } catch (error: any)
+   {
     console.error(error);
     return { success: false, error: error.message || 'Failed to generate questions.' };
   }

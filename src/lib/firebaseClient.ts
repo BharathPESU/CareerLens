@@ -1,7 +1,7 @@
 // src/lib/firebaseClient.ts
 import { initializeApp, getApps, getApp, FirebaseOptions } from "firebase/app";
 import { getAuth } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
+import { getFirestore, initializeFirestore } from "firebase/firestore";
 import { getAnalytics, isSupported } from "firebase/analytics";
 
 const firebaseConfig: FirebaseOptions = {
@@ -21,7 +21,8 @@ if (!firebaseConfig.projectId) {
 
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 const auth = getAuth(app);
-const db = getFirestore(app);
+// Use initializeFirestore with long polling to avoid intermittent network issues in some environments
+const db = initializeFirestore(app, { experimentalForceLongPolling: true });
 
 // Initialize Analytics only if it's supported on the client
 const analytics = typeof window !== 'undefined' && isSupported().then(yes => (yes ? getAnalytics(app) : null));

@@ -348,11 +348,11 @@ export function ProfilePage() {
                                                 const skills = e.target.value.split(',').map(s => s.trim()).filter(Boolean).map(name => ({ name, proficiency: 'Intermediate' }));
                                                 field.onChange(skills);
                                             }}
-                                            value={field.value.map(s => s.name).join(', ')}
+                                            value={Array.isArray(field.value) ? field.value.map(s => s.name).join(', ') : ''}
                                         />
                                     </FormControl>
                                      <div className="pt-4 space-y-4">
-                                        {field.value.map((skill, index) => (
+                                        {Array.isArray(field.value) && field.value.map((skill, index) => (
                                             <div key={index} className="flex items-center gap-4">
                                                 <Badge variant="secondary" className="text-lg py-1 px-3">{skill.name}</Badge>
                                                 <FormField

@@ -6,7 +6,7 @@ import { getAnalytics, isSupported } from "firebase/analytics";
 
 // Your web app's Firebase configuration from the user
 const firebaseConfig: FirebaseOptions = {
-  apiKey: "AIzaSyAZRQLIieXFytt1ztD8uE6TeaqeT4ggBAs",
+  apiKey: "AIzaSyCqF09rgDlPgOP12AXUrS1iu-lWscWbSDU",
   authDomain: "careerlens-1.firebaseapp.com",
   projectId: "careerlens-1",
   storageBucket: "careerlens-1.appspot.com",

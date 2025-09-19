@@ -2,7 +2,6 @@ import './globals.css';
 import { AppLayout } from '@/components/app-layout';
 import { Toaster } from '@/components/ui/toaster';
 import { AuthProvider } from '@/hooks/use-auth';
-import { ProfileProvider } from '@/hooks/use-profile';
 
 export default function RootLayout({
   children,
@@ -23,10 +22,8 @@ export default function RootLayout({
       <body className="font-body antialiased" suppressHydrationWarning>
         <div className="animated-gradient absolute top-0 left-0 w-full h-full -z-10" />
         <AuthProvider>
-          <ProfileProvider>
             <AppLayout>{children}</AppLayout>
             <Toaster />
-          </ProfileProvider>
         </AuthProvider>
       </body>
     </html>

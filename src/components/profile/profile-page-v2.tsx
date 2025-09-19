@@ -20,7 +20,7 @@ import { motion } from 'framer-motion';
 import { userProfileSchema, type UserProfile } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
-import { saveProfile, fetchProfile } from '@/lib/profile-service';
+import { saveProfile } from '@/lib/profile-service';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -49,7 +49,6 @@ export function ProfilePageV2() {
   const { toast } = useToast();
   const { user, loading: authLoading } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isFetching, setIsFetching] = useState(true);
   const [newSkill, setNewSkill] = useState('');
 
   const form = useForm<UserProfile>({
@@ -72,36 +71,22 @@ export function ProfilePageV2() {
   });
 
   useEffect(() => {
+    // Pre-fill email from auth state when user is loaded
     if (user) {
-      setIsFetching(true);
-      fetchProfile(user.uid).then(({ data: profileData, success, error }) => {
-        if (success && profileData) {
-            form.reset({
-                name: profileData.name || user.displayName || '',
-                email: user.email || '',
-                phone: profileData.phone || '',
-                bio: profileData.bio || '',
-                linkedin: profileData.linkedin || '',
-                github: profileData.github || '',
-                skills: profileData.skills || [],
-            });
-        } else if (error) {
-            toast({ variant: 'destructive', title: 'Could not load profile', description: 'Using default values.' });
-            form.reset({ name: user.displayName || '', email: user.email || '', phone: '', bio: '', linkedin: '', github: '', skills: [] });
-        } else {
-             // New user, just set email and name
-            form.reset({ name: user.displayName || '', email: user.email || '', phone: '', bio: '', linkedin: '', github: '', skills: [] });
-        }
-        setIsFetching(false);
+      form.reset({
+        name: user.displayName || '',
+        email: user.email || '',
+        phone: '',
+        bio: '',
+        linkedin: '',
+        github: '',
+        skills: [],
       });
-    } else if (!authLoading) {
-      setIsFetching(false); // Not logged in, stop fetching
     }
-  }, [user, authLoading, form, toast]);
+  }, [user, form]);
 
   const handleAddSkill = () => {
     if (newSkill.trim()) {
-      // Avoid adding duplicate skills
       if (!skillFields.some(field => field.name.toLowerCase() === newSkill.trim().toLowerCase())) {
         appendSkill({ name: newSkill.trim() });
       }
@@ -142,7 +127,7 @@ export function ProfilePageV2() {
     }
   }
   
-  if (authLoading || isFetching) {
+  if (authLoading) {
     return (
        <div className="p-4 md:p-8 max-w-2xl mx-auto">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
@@ -311,5 +296,3 @@ export function ProfilePageV2() {
     </div>
   );
 }
-
-    

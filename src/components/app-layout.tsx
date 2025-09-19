@@ -1,7 +1,6 @@
 'use client';
 import { Nav } from '@/components/nav';
 import { useAuth } from '@/hooks/use-auth';
-import { useProfile } from '@/hooks/use-profile';
 import { useRouter, usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Loader2 } from 'lucide-react';
@@ -10,7 +9,6 @@ import { useIsMobile } from '@/hooks/use-mobile';
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const { user, loading: authLoading, logOut } = useAuth();
-  const { profile, loading: profileLoading } = useProfile();
   const router = useRouter();
   const pathname = usePathname();
   const { toast } = useToast();
@@ -47,8 +45,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       )
   }
 
-  // Show a loading screen while auth or profile data is being loaded for protected pages.
-  if (authLoading || profileLoading || !user) {
+  // Show a loading screen while auth is being loaded for protected pages.
+  if (authLoading || !user) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />

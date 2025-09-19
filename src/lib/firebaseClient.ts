@@ -1,4 +1,3 @@
-
 // src/lib/firebaseClient.ts
 import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
 import { getAuth, type Auth } from "firebase/auth";
@@ -25,17 +24,13 @@ if (getApps().length === 0) {
   app = getApp();
 }
 
-try {
-  // This will throw if it's the first time, which is fine.
-  db = getFirestore(app);
-} catch (e) {
-  // Initialize Firestore with long-polling for environments that need it.
-  db = initializeFirestore(app, {
+// Force long polling instead of WebSockets for more stable connections in restricted environments.
+db = initializeFirestore(app, {
     experimentalForceLongPolling: true,
-    useFetchStreams: false, // Ensure streaming is disabled for max compatibility
+    useFetchStreams: false,
     cacheSizeBytes: CACHE_SIZE_UNLIMITED
-  });
-}
+});
+
 
 auth = getAuth(app);
 

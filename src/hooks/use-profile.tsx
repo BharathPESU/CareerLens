@@ -1,10 +1,11 @@
+
 'use client';
 
 import { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import type { User } from 'firebase/auth';
 import type { UserProfile } from '@/lib/types';
 import { useAuth } from '@/hooks/use-auth';
-import { getOrCreateUserProfile } from '@/lib/profile-service';
+import { fetchProfile } from '@/lib/profile-service';
 import { useToast } from './use-toast';
 
 interface ProfileContextType {
@@ -36,7 +37,10 @@ export const ProfileProvider = ({ children }: { children: React.ReactNode }) => 
     
     setLoading(true);
     try {
-      const userProfile = await getOrCreateUserProfile(user);
+      const { data: userProfile, error } = await fetchProfile(user.uid);
+      if (error) {
+        throw new Error(error);
+      }
       setProfile(userProfile);
     } catch (error: any) {
       console.error("Failed to load profile:", error);

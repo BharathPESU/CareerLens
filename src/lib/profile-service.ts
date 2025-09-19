@@ -20,10 +20,7 @@ export async function fetchProfile(
     const data = await res.json();
 
     if (!res.ok) {
-      // If profile not found, it's not a critical error, just return null data.
-      if (res.status === 404) {
-        return { success: true, data: null };
-      }
+      // API route handles not found by creating a default, so this is a real error.
       throw new Error(data.error || 'Failed to fetch profile');
     }
     

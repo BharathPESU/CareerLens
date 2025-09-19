@@ -11,7 +11,6 @@ import type { SkillGapAnalysisInput, SkillGapAnalysisOutput } from '@/ai/flows/p
 import type { CreatePersonalizedRoadmapInput, CreatePersonalizedRoadmapOutput } from '@/ai/flows/create-personalized-roadmap';
 import type { GenerateResumeFromJsonInput, GenerateResumeFromJsonOutput } from '@/ai/flows/generate-resume-from-json';
 import type { GenerateInterviewQuestionsInput, GenerateInterviewQuestionsOutput } from '@/ai/flows/generate-interview-questions';
-import type { UserProfile } from '@/lib/types';
 
 
 export async function getCareerRecommendations(

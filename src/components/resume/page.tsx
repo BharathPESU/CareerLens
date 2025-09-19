@@ -3,12 +3,29 @@
 import { useState, useEffect } from 'react';
 import { Loader2, Sparkles, FileText } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
-import { getResumeJson, getUserProfile } from '@/lib/actions';
+import { getResumeJson } from '@/lib/actions';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ResumePreview } from './resume-preview';
 import type { UserProfile } from '@/lib/types';
 import { useAuth } from '@/hooks/use-auth';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebaseClient';
+
+async function getUserProfile(userId: string): Promise<{ success: boolean; data?: UserProfile | null, error?: string}> {
+    try {
+        const userDocRef = doc(db, 'users', userId);
+        const userDoc = await getDoc(userDocRef);
+        if (userDoc.exists()) {
+            return { success: true, data: userDoc.data() as UserProfile };
+        } else {
+            return { success: true, data: null };
+        }
+    } catch (err: any) {
+        return { success: false, error: err.message };
+    }
+}
+
 
 export function ResumePage() {
     const { toast } = useToast();

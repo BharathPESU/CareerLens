@@ -1,24 +1,14 @@
-'use client';
-import { usePathname } from 'next/navigation';
 import './globals.css';
 import { AppLayout } from '@/components/app-layout';
 import { Toaster } from '@/components/ui/toaster';
 import { AuthProvider } from '@/hooks/use-auth';
 import { ProfileProvider } from '@/hooks/use-profile';
 
-// export const metadata: Metadata = {
-//   title: 'CareerLens',
-//   description: 'Your personal AI-powered career advisor.',
-// };
-
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const pathname = usePathname();
-  const isAuthPage = pathname === '/login' || pathname === '/signup';
-
   return (
     <html lang="en" className="dark" style={{ colorScheme: 'dark' }}>
       <head>
@@ -34,11 +24,7 @@ export default function RootLayout({
         <div className="animated-gradient absolute top-0 left-0 w-full h-full -z-10" />
         <AuthProvider>
           <ProfileProvider>
-            {isAuthPage ? (
-              <div className="flex min-h-screen items-center justify-center">{children}</div>
-            ) : (
-              <AppLayout>{children}</AppLayout>
-            )}
+            <AppLayout>{children}</AppLayout>
             <Toaster />
           </ProfileProvider>
         </AuthProvider>

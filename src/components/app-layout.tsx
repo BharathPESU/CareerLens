@@ -2,7 +2,7 @@
 import { Nav } from '@/components/nav';
 import { useAuth } from '@/hooks/use-auth';
 import { useProfile } from '@/hooks/use-profile';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -12,15 +12,18 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const { user, loading: authLoading, logOut } = useAuth();
   const { profile, loading: profileLoading } = useProfile();
   const router = useRouter();
+  const pathname = usePathname();
   const { toast } = useToast();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const isMobile = useIsMobile();
+  
+  const isAuthPage = pathname === '/login' || pathname === '/signup';
 
   useEffect(() => {
-    if (!authLoading && !user) {
+    if (!authLoading && !user && !isAuthPage) {
       router.replace('/login');
     }
-  }, [authLoading, user, router]);
+  }, [authLoading, user, router, isAuthPage]);
 
   const handleLogout = async () => {
     setIsLoggingOut(true);
@@ -38,7 +41,13 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     }
   }
 
-  // Show a loading screen while auth or profile data is being loaded.
+  if (isAuthPage) {
+      return (
+          <div className="flex min-h-screen items-center justify-center">{children}</div>
+      )
+  }
+
+  // Show a loading screen while auth or profile data is being loaded for protected pages.
   if (authLoading || profileLoading || !user) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">

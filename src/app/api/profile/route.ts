@@ -28,7 +28,7 @@ export async function GET(req: NextRequest) {
     const docSnap = await docRef.get();
 
     if (!docSnap.exists) {
-       // If the profile doesn't exist, create a default one.
+       // If the profile doesn't exist, create and return a default one.
        const defaultProfile = {
             name: '',
             email: '',
@@ -53,7 +53,7 @@ export async function GET(req: NextRequest) {
             updatedAt: Timestamp.now(),
         };
 
-        await docRef.set(defaultProfile);
+        // We don't save it here, we just return the shape. It will be saved on first POST.
         const data = convertTimestampsToISO(defaultProfile);
         return NextResponse.json(data, { status: 200 });
     }

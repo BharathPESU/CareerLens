@@ -35,7 +35,7 @@ const learningContentPrompt = ai.definePrompt({
   
   Please generate the following based on the text provided:
   1.  **Quick Points**: A concise list of the most important bullet points, definitions, and key takeaways.
-  2.  **Deep Dive**: A detailed, structured explanation of the core concepts. Use Markdown for formatting (headings, bold, lists).
+  2.  **Deep Dive**: A detailed, structured, and in-depth explanation of the core concepts. Use Markdown for formatting (headings, bold, lists) and incorporate relevant emojis 🎓, 💡, 🚀 to make the content more engaging and visually appealing.
   3.  **Mind Map**: A hierarchical JSON structure representing the main topics and their sub-points. Each node should have an 'id', 'label', and optional 'children' array.
   4.  **Exam Mode**: A set of varied practice questions (multiple choice, true/false, short answer) with correct answers to test understanding.
 
@@ -43,8 +43,6 @@ const learningContentPrompt = ai.definePrompt({
   \`\`\`
   {{{textContent}}}
   \`\`\`
-  
-  Format the entire output as a single, valid JSON object that conforms to the specified output schema.
   `,
   model: 'googleai/gemini-2.5-flash-lite',
 });

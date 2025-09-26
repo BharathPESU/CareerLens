@@ -24,12 +24,14 @@ const MindMapNodeSchema: z.ZodType<any> = z.lazy(() =>
 );
 
 // Schema for a single exam question.
-const ExamQuestionSchema = z.object({
+export const ExamQuestionSchema = z.object({
     question: z.string().describe('The question text.'),
     options: z.array(z.string()).describe('An array of possible answers for multiple-choice questions.'),
     answer: z.string().describe('The correct answer.'),
     type: z.enum(['multiple-choice', 'true-false', 'short-answer']).describe('The type of question.'),
 });
+export type ExamQuestion = z.infer<typeof ExamQuestionSchema>;
+
 
 // Schema for the final, structured output of the orchestrator.
 export const LearningOrchestratorOutputSchema = z.object({

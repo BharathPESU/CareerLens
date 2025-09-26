@@ -14,6 +14,7 @@ import {
   Loader2,
   File as FileIcon,
   CheckCircle2,
+  XCircle,
   ListTree,
   FileQuestion,
   BookOpen
@@ -22,7 +23,7 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent } from '@/components/ui/card';
 import { getLearningHelperOutput } from '@/lib/actions';
-import type { LearningOrchestratorOutput } from '@/ai/schemas/learning-orchestrator';
+import type { LearningOrchestratorOutput, ExamQuestion } from '@/ai/schemas/learning-orchestrator';
 import { useToast } from '@/hooks/use-toast';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import { Label } from '../ui/label';
@@ -191,7 +192,7 @@ export function LearningHelperPage() {
                            <TabsContent value="Deep Dive" className="p-6 glass-card rounded-2xl mt-4">
                                 <h2 className="text-2xl font-bold mb-4 font-headline text-glow flex items-center gap-3"><BookOpen/>Deep Dive</h2>
                                 {aiOutput?.deepDive ? (
-                                    <div className="prose prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: aiOutput.deepDive.replace(/\n/g, '<br />') }} />
+                                    <div className="prose prose-invert max-w-none prose-p:text-muted-foreground prose-headings:text-glow prose-strong:text-foreground" dangerouslySetInnerHTML={{ __html: aiOutput.deepDive.replace(/\n/g, '<br />') }} />
                                 ) : <p className="text-muted-foreground">Detailed explanations will appear here...</p>}
                             </TabsContent>
                             <TabsContent value="Mind Map" className="p-6 glass-card rounded-2xl mt-4">
@@ -208,24 +209,7 @@ export function LearningHelperPage() {
                             <TabsContent value="Exam Mode" className="p-6 glass-card rounded-2xl mt-4">
                                 <h2 className="text-2xl font-bold mb-4 font-headline text-glow flex items-center gap-3"><FileQuestion/>Exam Mode</h2>
                                 {aiOutput?.examQuestions ? (
-                                    <div className="space-y-6">
-                                        {aiOutput.examQuestions.map((q, index) => (
-                                            <Card key={index} className="bg-background/50">
-                                                <CardContent className="p-4">
-                                                    <p className="font-semibold mb-3">{index + 1}. {q.question}</p>
-                                                    <RadioGroup>
-                                                        {q.options.map((opt, i) => (
-                                                            <div key={i} className="flex items-center space-x-2">
-                                                                <RadioGroupItem value={opt} id={`q${index}-opt${i}`} />
-                                                                <Label htmlFor={`q${index}-opt${i}`}>{opt}</Label>
-                                                            </div>
-                                                        ))}
-                                                    </RadioGroup>
-                                                    <p className="text-sm text-green-400 mt-3">Correct Answer: {q.answer}</p>
-                                                </CardContent>
-                                            </Card>
-                                        ))}
-                                    </div>
+                                    <ExamMode questions={aiOutput.examQuestions} />
                                 ) : <p className="text-muted-foreground">Practice questions and quizzes will appear here...</p>}
                             </TabsContent>
                              <TabsContent value="Visuals" className="p-6 glass-card rounded-2xl mt-4">
@@ -256,17 +240,99 @@ export function LearningHelperPage() {
 function MindMapNode({ node, level }: { node: NonNullable<LearningOrchestratorOutput['mindMap']>, level: number }) {
   return (
     <div style={{ marginLeft: level * 20 }}>
-      <div className="flex items-center gap-2">
-        <BrainCircuit className="w-4 h-4 text-primary/80 shrink-0"/>
-        <span className="font-semibold">{node.label}</span>
+      <div className="flex items-start gap-2">
+        <BrainCircuit className="w-4 h-4 text-primary/80 shrink-0 mt-1"/>
+        <span className="font-semibold break-words">{node.label}</span>
       </div>
       {node.children && node.children.length > 0 && (
         <div className="mt-2 space-y-2 border-l-2 border-primary/20 pl-4">
-          {node.children.map(child => (
-            <MindMapNode key={child.id} node={child} level={level + 1} />
+          {node.children.map((child, index) => (
+            <MindMapNode key={`${child.id}-${index}`} node={child} level={level + 1} />
           ))}
         </div>
       )}
     </div>
   );
+}
+
+// Interactive Exam Mode component
+function ExamMode({ questions }: { questions: ExamQuestion[] }) {
+    const [answers, setAnswers] = useState<Record<number, string>>({});
+    const [submitted, setSubmitted] = useState(false);
+    const [score, setScore] = useState(0);
+
+    const handleAnswerChange = (questionIndex: number, answer: string) => {
+        setAnswers(prev => ({ ...prev, [questionIndex]: answer }));
+    };
+
+    const handleSubmit = () => {
+        let correctAnswers = 0;
+        questions.forEach((q, index) => {
+            if (answers[index] === q.answer) {
+                correctAnswers++;
+            }
+        });
+        setScore((correctAnswers / questions.length) * 100);
+        setSubmitted(true);
+    };
+
+    const allAnswered = Object.keys(answers).length === questions.length;
+
+    return (
+        <div className="space-y-6">
+            {questions.map((q, index) => {
+                const isCorrect = submitted && answers[index] === q.answer;
+                const isIncorrect = submitted && answers[index] && answers[index] !== q.answer;
+
+                return (
+                    <Card key={index} className={`bg-background/50 transition-all ${isCorrect ? 'border-green-500' : ''} ${isIncorrect ? 'border-destructive' : ''}`}>
+                        <CardContent className="p-4">
+                            <p className="font-semibold mb-3">{index + 1}. {q.question}</p>
+                            <RadioGroup 
+                                onValueChange={(value) => handleAnswerChange(index, value)}
+                                disabled={submitted}
+                                value={answers[index]}
+                            >
+                                {q.options.map((opt, i) => {
+                                    const isCorrectOption = submitted && opt === q.answer;
+                                    const isSelectedIncorrect = submitted && opt === answers[index] && opt !== q.answer;
+                                    return (
+                                        <div key={i} className="flex items-center space-x-3">
+                                            <RadioGroupItem value={opt} id={`q${index}-opt${i}`} />
+                                            <Label 
+                                                htmlFor={`q${index}-opt${i}`}
+                                                className={`flex-1 ${isCorrectOption ? 'text-green-400' : ''} ${isSelectedIncorrect ? 'text-destructive' : ''}`}
+                                            >
+                                                {opt}
+                                            </Label>
+                                            {isCorrectOption && <CheckCircle2 className="w-5 h-5 text-green-500" />}
+                                            {isSelectedIncorrect && <XCircle className="w-5 h-5 text-destructive" />}
+                                        </div>
+                                    );
+                                })}
+                            </RadioGroup>
+                            {isIncorrect && (
+                                <p className="text-sm text-green-400 mt-3 p-2 bg-green-500/10 rounded-md">
+                                    Correct Answer: {q.answer}
+                                </p>
+                            )}
+                        </CardContent>
+                    </Card>
+                );
+            })}
+
+            {submitted ? (
+                <div className="text-center p-6 bg-card rounded-xl">
+                    <h3 className="text-2xl font-bold text-glow">Your Score: {score.toFixed(0)}%</h3>
+                    <Button onClick={() => { setSubmitted(false); setAnswers({}); setScore(0); }} className="mt-4">
+                        Try Again
+                    </Button>
+                </div>
+            ) : (
+                <Button onClick={handleSubmit} disabled={!allAnswered} className="w-full h-12 text-lg">
+                    Submit Answers
+                </Button>
+            )}
+        </div>
+    );
 }

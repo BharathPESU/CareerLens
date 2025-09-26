@@ -45,6 +45,7 @@ const prompt = ai.definePrompt({
 
   The response should be a JSON object containing an array of interview questions, each with a question, difficulty (easy, medium, or hard), and a model answer.
   `,
+  model: 'googleai/gemini-1.5-flash',
 });
 
 const generateInterviewQuestionsFlow = ai.defineFlow(

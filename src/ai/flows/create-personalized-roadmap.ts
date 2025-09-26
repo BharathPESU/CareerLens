@@ -64,7 +64,7 @@ const prompt = ai.definePrompt({
   Format the output as a JSON object conforming to this schema:
   ${JSON.stringify(CreatePersonalizedRoadmapOutputSchema.describe(''))}
   `,
-  model: 'googleai/gemini-1.5-flash',
+  model: 'googleai/gemini-2.5-flash-lite',
 });
 
 const createPersonalizedRoadmapFlow = ai.defineFlow(

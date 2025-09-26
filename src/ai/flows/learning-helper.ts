@@ -26,7 +26,7 @@ const extractTextPrompt = ai.definePrompt({
     prompt: `Extract all text content from the provided PDF document. Organize it in a structured and readable format.
   
     PDF Document: {{media url=pdfDataUri}}`,
-    model: 'googleai/gemini-1.5-flash',
+    model: 'googleai/gemini-2.5-flash-lite',
 });
 
 const quickPointsPrompt = ai.definePrompt({
@@ -43,7 +43,7 @@ const quickPointsPrompt = ai.definePrompt({
   \`\`\`
   
   Generate the summary and format it as a valid JSON object.`,
-  model: 'googleai/gemini-1.5-flash',
+  model: 'googleai/gemini-2.5-flash-lite',
 });
 
 

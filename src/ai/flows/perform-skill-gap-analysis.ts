@@ -54,7 +54,7 @@ Given the user's skills and the target role requirements, identify the overlappi
 
 Output the overlapping skills, missing skills, and a suggested learning order in JSON format.
 `,
-  model: 'googleai/gemini-1.5-flash',
+  model: 'googleai/gemini-2.5-flash-lite',
 });
 
 const performSkillGapAnalysisFlow = ai.defineFlow(

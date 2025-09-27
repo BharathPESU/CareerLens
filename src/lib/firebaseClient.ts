@@ -28,21 +28,23 @@ if (getApps().length === 0) {
 auth = getAuth(app);
 db = getFirestore(app);
 
-// Check if we are in a development environment and connect to the emulator
-if (typeof window !== 'undefined' && window.location.hostname === "localhost") {
-  console.log("Development environment detected. Connecting to local Firestore emulator.");
-  connectFirestoreEmulator(db, 'localhost', 8080);
+// Check if we are in a browser environment before enabling features
+if (typeof window !== 'undefined') {
+  // Enable offline persistence
+  enableIndexedDbPersistence(db)
+    .catch((err) => {
+      if (err.code == 'failed-precondition') {
+        console.warn("Firestore persistence failed: Multiple tabs open. Persistence can only be enabled in one tab at a time.");
+      } else if (err.code == 'unimplemented') {
+        console.error("Firestore persistence is not available in this browser.");
+      }
+    });
+
+  // Connect to the emulator only in a local development environment
+  if (window.location.hostname === "localhost") {
+    console.log("Development environment detected. Connecting to local Firestore emulator.");
+    connectFirestoreEmulator(db, 'localhost', 8080);
+  }
 }
-
-// Enable offline persistence
-enableIndexedDbPersistence(db)
-  .catch((err) => {
-    if (err.code == 'failed-precondition') {
-      console.warn("Firestore persistence failed: Multiple tabs open. Persistence can only be enabled in one tab at a time.");
-    } else if (err.code == 'unimplemented') {
-      console.error("Firestore persistence is not available in this browser.");
-    }
-  });
-
 
 export { app, auth, db };

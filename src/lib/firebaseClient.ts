@@ -46,8 +46,8 @@ if (typeof window !== 'undefined') {
 
   // Connect to the emulator only in a local development environment
   if (window.location.hostname === "localhost") {
-    console.log("Development environment detected. Connecting to local Firestore emulator.");
-    connectFirestoreEmulator(db, 'localhost', 8080);
+    console.log("NOW DISCONNECTED FROM EMULATOR. Will save to the CLOUD.");
+    // connectFirestoreEmulator(db, 'localhost', 8080);
   }
 }
 

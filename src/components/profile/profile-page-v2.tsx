@@ -122,35 +122,45 @@ export function ProfilePageV2() {
         title: 'Authentication Error',
         description: 'You must be logged in to save your profile.',
       });
+      console.error("Save failed: No user is currently logged in.");
       return;
     }
     setIsSubmitting(true);
     
-    const profileData = {
-      ...data,
-      email: user.email, // Ensure email from auth is saved
-      name: data.name || '',
-      phone: data.phone || '',
-      bio: data.bio || '',
-      linkedin: data.linkedin || '',
-      github: data.github || '',
-      skills: data.skills || [],
-    };
+    console.log(`Attempting to save data for user UID: ${user.uid}`);
+    console.log("Submitting this data payload:", data);
+    
+    const dataToSave: Partial<UserProfile> = {};
+    Object.keys(data).forEach(key => {
+      const value = data[key as keyof UserProfile];
+      if (value !== undefined) {
+        (dataToSave as any)[key] = value;
+      }
+    });
+    console.log("Cleaned data payload (no undefined values):", dataToSave);
 
-    const { success, error } = await saveProfile(user.uid, profileData);
-    setIsSubmitting(false);
-
-    if (success) {
-      toast({
-        title: 'Profile Saved! ✅',
-        description: 'Your information has been successfully updated.',
-      });
-    } else {
+    try {
+      const { success, error } = await saveProfile(user.uid, dataToSave);
+      
+      if (success) {
+        console.log("SUCCESS! Document written successfully.");
+        toast({
+          title: 'Profile Saved! ✅',
+          description: 'Your information has been successfully updated.',
+        });
+      } else {
+        throw new Error(error || 'An unknown error occurred during save.');
+      }
+    } catch (err: any) {
+      console.error("FIRESTORE SAVE ERROR:", err);
       toast({
         variant: 'destructive',
         title: 'Save Failed ❌',
-        description: error || 'An unknown error occurred.',
+        description: err.message || 'An unknown error occurred.',
       });
+    } finally {
+      console.log("Finished save attempt. Setting 'isSubmitting' state to false.");
+      setIsSubmitting(false);
     }
   }
   

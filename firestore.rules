@@ -1,6 +1,5 @@
 
 rules_version = '2';
-
 service cloud.firestore {
   match /databases/{database}/documents {
     // Allow a user to read and write to their OWN document in the 'users' collection

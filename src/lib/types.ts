@@ -4,9 +4,6 @@ import { z } from 'zod';
 const phoneRegex = new RegExp(
   /^(\+\d{1,2}\s?)?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}$/
 );
-const linkedinRegex = new RegExp(/^https:\/\/www\.linkedin\.com\/in\/[a-zA-Z0-9_-]+\/?$/);
-const githubRegex = new RegExp(/^https:\/\/github\.com\/[a-zA-Z0-9_-]+$/);
-
 
 export const experienceSchema = z.object({
   role: z.string().min(1, 'Role is required.'),
@@ -29,12 +26,12 @@ export const skillSchema = z.object({
 });
 
 export const userProfileSchema = z.object({
-  name: z.string().min(2, 'Full name is required.'),
+  name: z.string().min(2, 'Full name is required.').optional().or(z.literal('')),
   email: z.string().email('Invalid email address.'),
-  phone: z.string().regex(phoneRegex, 'Must be a valid 10-digit phone number.').optional(),
-  bio: z.string().max(200, 'Bio must be 200 characters or less.').optional(),
-  linkedin: z.string().url('Invalid LinkedIn profile URL.').optional(),
-  github: z.string().url('Invalid GitHub profile URL.').optional(),
+  phone: z.string().regex(phoneRegex, 'Must be a valid 10-digit phone number.').optional().or(z.literal('')),
+  bio: z.string().max(200, 'Bio must be 200 characters or less.').optional().or(z.literal('')),
+  linkedin: z.string().url('Invalid LinkedIn profile URL.').optional().or(z.literal('')),
+  github: z.string().url('Invalid GitHub profile URL.').optional().or(z.literal('')),
   skills: z.array(z.object({ name: z.string() })).optional().default([]),
   updatedAt: z.string().optional(),
 });

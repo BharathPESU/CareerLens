@@ -2,7 +2,7 @@
 'use client';
 
 import { db } from "./firebaseClient";
-import { doc, getDoc, setDoc, Timestamp } from "firebase/firestore";
+import { doc, getDoc, setDoc } from "firebase/firestore";
 import type { UserProfile } from './types';
 
 
@@ -52,13 +52,15 @@ export async function saveProfile(
   try {
     const docRef = doc(db, "users", userId);
     
-    // Add server timestamp for updates
+    // Add a server timestamp for updates and ensure email is included
     const dataToSave = {
       ...data,
       updatedAt: new Date().toISOString(),
     };
 
+    // Use setDoc with { merge: true } to create or update the document.
     await setDoc(docRef, dataToSave, { merge: true });
+    
     return { success: true };
   } catch (err: any) {
     console.error('Error saving profile to Firestore:', err);

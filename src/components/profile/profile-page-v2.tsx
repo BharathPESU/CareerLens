@@ -2,67 +2,43 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { useForm, useFieldArray, Controller } from 'react-hook-form';
+import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import {
-  Loader2,
-  User,
-  Linkedin,
-  Github,
-  Mail,
-  Phone,
-  Sparkles,
-  X,
-  PlusCircle,
+  Loader2, User, Linkedin, Github, Mail, Phone, Sparkles, X, PlusCircle, Trash2, ArrowLeft, ArrowRight, Briefcase, GraduationCap, Target, Building
 } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
 import { saveProfile, fetchProfile } from '@/lib/profile-service';
+import { userProfileSchema, type UserProfile } from '@/lib/types';
 
 import { Button } from '@/components/ui/button';
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardFooter,
-} from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '../ui/skeleton';
+import { Progress } from '../ui/progress';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 
-// Define a precise type for your profile data
-const userProfileSchema = z.object({
-  name: z.string().optional(),
-  bio: z.string().optional(),
-  phone: z.string().optional(),
-  linkedin: z.string().optional(),
-  github: z.string().optional(),
-  skills: z.array(z.object({ name: z.string() })).optional(),
-});
-type UserProfile = z.infer<typeof userProfileSchema>;
 
+const steps = [
+  { id: 'personal', title: 'Personal Info', icon: User },
+  { id: 'education', title: 'Education', icon: GraduationCap },
+  { id: 'experience', title: 'Experience', icon: Briefcase },
+  { id: 'skills', title: 'Skills & Goals', icon: Target },
+];
 
 export function ProfilePageV2() {
   const { toast } = useToast();
   const { user, loading: authLoading } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [newSkill, setNewSkill] = useState('');
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
+  const [currentStep, setCurrentStep] = useState(0);
 
   const form = useForm<UserProfile>({
     resolver: zodResolver(userProfileSchema),
@@ -73,14 +49,17 @@ export function ProfilePageV2() {
       linkedin: '',
       github: '',
       skills: [],
+      education: [],
+      experience: [],
+      careerGoals: '',
     },
     mode: 'onChange',
   });
 
-  const { fields: skillFields, append: appendSkill, remove: removeSkill } = useFieldArray({
-    control: form.control,
-    name: 'skills',
-  });
+  const { fields: skillFields, append: appendSkill, remove: removeSkill } = useFieldArray({ name: 'skills', control: form.control });
+  const { fields: expFields, append: appendExp, remove: removeExp } = useFieldArray({ name: 'experience', control: form.control });
+  const { fields: eduFields, append: appendEdu, remove: removeEdu } = useFieldArray({ name: 'education', control: form.control });
+  const [newSkill, setNewSkill] = useState('');
 
   useEffect(() => {
     async function loadProfile() {
@@ -95,26 +74,17 @@ export function ProfilePageV2() {
             linkedin: profileData.linkedin || '',
             github: profileData.github || '',
             skills: profileData.skills || [],
-          });
-        } else {
-           console.log("No profile document found. A new one will be created on save.");
-           form.reset({
-            name: user.displayName || '',
-            phone: '',
-            bio: '',
-            linkedin: '',
-            github: '',
-            skills: [],
+            education: profileData.education || [],
+            experience: profileData.experience || [],
+            careerGoals: profileData.careerGoals || '',
           });
         }
-        setIsLoadingProfile(false);
-      } else if (!authLoading) {
         setIsLoadingProfile(false);
       }
     }
     loadProfile();
-  }, [user, form, authLoading]);
-
+  }, [user, form]);
+  
   const handleAddSkill = () => {
     const trimmedSkill = newSkill.trim();
     if (trimmedSkill && !skillFields.some(field => field.name.toLowerCase() === trimmedSkill.toLowerCase())) {
@@ -124,218 +94,146 @@ export function ProfilePageV2() {
   };
 
   async function onSubmit(data: UserProfile) {
-    if (!user) {
-      toast({
-        variant: 'destructive',
-        title: 'Authentication Error',
-        description: 'You must be logged in to save your profile.',
-      });
-      console.error("Save failed: No user is currently logged in.");
-      return;
-    }
+    if (!user) { return; }
     setIsSubmitting(true);
-    
-    console.log(`--- Starting Save Process for UID: ${user.uid} ---`);
-    console.log("Data to save:", data);
-    
-    // **CRITICAL CHECK FOR UNDEFINED VALUES**
-    const dataToSave: any = {};
-    Object.keys(data).forEach(key => {
-      const value = data[key as keyof UserProfile];
-      if (value !== undefined) {
-        dataToSave[key] = value;
-      }
-    });
-    console.log("Cleaned data payload (no undefined values):", dataToSave);
-
-
     try {
-      const { success, error } = await saveProfile(user.uid, dataToSave);
-      
-      if (success) {
-        console.log("--- SUCCESS: Firestore write operation completed. ---");
-        toast({
-          title: 'Profile Saved! ✅',
-          description: 'Your information has been successfully updated.',
-        });
-      } else {
-        throw new Error(error || 'An unknown error occurred during save.');
-      }
+      await saveProfile(user.uid, data);
+      toast({ title: 'Profile Saved! ✅', description: 'Your information has been successfully updated.' });
     } catch (err: any) {
-      console.error("--- FIRESTORE SAVE FAILED ---");
-      console.error(`Error Code: ${err.code}`);
-      console.error(`Error Message: ${err.message}`);
-      console.error(err);
-      toast({
-        variant: 'destructive',
-        title: 'Save Failed ❌',
-        description: err.message || 'An unknown error occurred.',
-      });
+      toast({ variant: 'destructive', title: 'Save Failed ❌', description: err.message || 'An unknown error occurred.' });
     } finally {
-      console.log("--- Finished Save Process. ---");
       setIsSubmitting(false);
     }
   }
-  
+
+  const nextStep = () => setCurrentStep(prev => (prev < steps.length - 1 ? prev + 1 : prev));
+  const prevStep = () => setCurrentStep(prev => (prev > 0 ? prev - 1 : prev));
+
   if (authLoading || isLoadingProfile) {
-    return (
-       <div className="p-4 md:p-8 max-w-2xl mx-auto">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
-            <Card className="glass-card w-full">
-                <CardHeader>
-                    <Skeleton className="h-8 w-48"/>
-                    <Skeleton className="h-4 w-64 mt-2"/>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                    <div className="space-y-2"><Skeleton className="h-4 w-24"/><Skeleton className="h-10 w-full"/></div>
-                    <div className="space-y-2"><Skeleton className="h-4 w-24"/><Skeleton className="h-10 w-full"/></div>
-                    <div className="space-y-2"><Skeleton className="h-4 w-24"/><Skeleton className="h-10 w-full"/></div>
-                    <div className="space-y-2"><Skeleton className="h-4 w-24"/><Skeleton className="h-20 w-full"/></div>
-                </CardContent>
-                 <CardFooter className="justify-end">
-                    <Skeleton className="h-10 w-32"/>
-                </CardFooter>
-            </Card>
-        </motion.div>
-       </div>
-    );
+    return <div className="p-8 max-w-4xl mx-auto"><Skeleton className="h-96 w-full" /></div>;
   }
 
+  const progress = ((currentStep + 1) / steps.length) * 100;
+
   return (
-    <div className="p-4 md:p-8 max-w-2xl mx-auto">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
-        <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)}>
-            <Card className="glass-card w-full">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-3 text-2xl font-headline text-glow">
-                  <User/> Your Professional Profile
-                </CardTitle>
-                <CardDescription>
-                  This information helps us tailor your career recommendations. Keep it up-to-date!
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                 <FormField
-                    control={form.control}
-                    name="name"
-                    render={({ field }) => (
-                        <FormItem>
-                        <FormLabel>Full Name</FormLabel>
-                        <FormControl>
-                            <Input placeholder="Ada Lovelace" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                        </FormItem>
-                    )}
-                    />
-                <FormItem>
-                    <FormLabel>Email</FormLabel>
-                    <FormControl>
-                        <div className="relative">
-                            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground"/>
-                            <Input placeholder="ada@futureofcode.com" value={user?.email || ''} readOnly className="pl-10 bg-muted/50 cursor-not-allowed"/>
+    <div className="p-4 md:p-8 max-w-4xl mx-auto">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold font-headline text-glow mb-2">Complete Your Profile</h1>
+        <p className="text-muted-foreground">A detailed profile helps our AI find the perfect career path for you.</p>
+        <Progress value={progress} className="mt-4 h-2" />
+      </div>
+
+      <div className="flex border-b mb-8">
+        {steps.map((step, index) => (
+          <button key={step.id} onClick={() => setCurrentStep(index)} className={`flex-1 group p-4 flex items-center justify-center gap-3 relative transition-colors ${currentStep === index ? 'text-primary' : 'text-muted-foreground hover:text-foreground'}`}>
+            <step.icon className="h-5 w-5" />
+            <span className="font-semibold">{step.title}</span>
+            {currentStep === index && <motion.div layoutId="stepper-underline" className="absolute bottom-0 left-0 right-0 h-1 bg-primary rounded-t-full" />}
+            {form.formState.errors[step.id as keyof UserProfile] && <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-destructive" />}
+          </button>
+        ))}
+      </div>
+
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)}>
+          <AnimatePresence mode="wait">
+            <motion.div key={currentStep} initial={{ opacity: 0, x: 50 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -50 }} transition={{ duration: 0.3 }}>
+              {currentStep === 0 && (
+                <Card className="glass-card">
+                  <CardHeader><CardTitle>Personal Information</CardTitle></CardHeader>
+                  <CardContent className="space-y-4">
+                    <FormField name="name" control={form.control} render={({ field }) => ( <FormItem><FormLabel>Full Name</FormLabel><FormControl><Input placeholder="Ada Lovelace" {...field} /></FormControl><FormMessage /></FormItem> )} />
+                    <FormItem><FormLabel>Email</FormLabel><FormControl><Input value={user?.email || ''} readOnly className="bg-muted/50" /></FormControl></FormItem>
+                    <FormField name="phone" control={form.control} render={({ field }) => ( <FormItem><FormLabel>Phone</FormLabel><FormControl><Input placeholder="(123) 456-7890" {...field} /></FormControl><FormMessage /></FormItem> )} />
+                    <FormField name="bio" control={form.control} render={({ field }) => ( <FormItem><FormLabel>Short Bio</FormLabel><FormControl><Textarea placeholder="A brief summary about you..." {...field} /></FormControl><FormMessage /></FormItem> )} />
+                    <div className="grid grid-cols-2 gap-4">
+                       <FormField name="linkedin" control={form.control} render={({ field }) => ( <FormItem><FormLabel>LinkedIn</FormLabel><FormControl><Input placeholder="https://linkedin.com/in/..." {...field} /></FormControl><FormMessage /></FormItem> )} />
+                       <FormField name="github" control={form.control} render={({ field }) => ( <FormItem><FormLabel>GitHub</FormLabel><FormControl><Input placeholder="https://github.com/..." {...field} /></FormControl><FormMessage /></FormItem> )} />
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+               {currentStep === 1 && (
+                <Card className="glass-card">
+                  <CardHeader><CardTitle>Educational Background</CardTitle></CardHeader>
+                  <CardContent className="space-y-4">
+                    {eduFields.map((field, index) => (
+                      <Card key={field.id} className="p-4 relative">
+                        <Button variant="ghost" size="icon" className="absolute top-2 right-2" onClick={() => removeEdu(index)}><Trash2 className="h-4 w-4 text-destructive"/></Button>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <FormField name={`education.${index}.degree`} control={form.control} render={({ field }) => ( <FormItem><FormLabel>Degree/Qualification</FormLabel><FormControl><Input placeholder="e.g., Bachelor of Science" {...field} /></FormControl><FormMessage /></FormItem> )} />
+                          <FormField name={`education.${index}.field`} control={form.control} render={({ field }) => ( <FormItem><FormLabel>Field of Study</FormLabel><FormControl><Input placeholder="e.g., Computer Science" {...field} /></FormControl><FormMessage /></FormItem> )} />
+                          <FormField name={`education.${index}.institution`} control={form.control} render={({ field }) => ( <FormItem><FormLabel>Institution</FormLabel><FormControl><Input placeholder="e.g., University of Cambridge" {...field} /></FormControl><FormMessage /></FormItem> )} />
+                          <FormField name={`education.${index}.year`} control={form.control} render={({ field }) => ( <FormItem><FormLabel>Graduation Year</FormLabel><FormControl><Input placeholder="2024" {...field} /></FormControl><FormMessage /></FormItem> )} />
                         </div>
-                    </FormControl>
-                </FormItem>
-                 <FormField
-                    control={form.control}
-                    name="phone"
-                    render={({ field }) => (
-                        <FormItem>
-                        <FormLabel>Phone Number</FormLabel>
-                        <FormControl>
-                             <div className="relative">
-                                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground"/>
-                                <Input placeholder="(123) 456-7890" {...field} className="pl-10"/>
-                            </div>
-                        </FormControl>
-                        <FormMessage />
-                        </FormItem>
-                    )}
-                    />
-                <FormField
-                    control={form.control}
-                    name="bio"
-                    render={({ field }) => (
-                        <FormItem>
-                        <FormLabel>Short Bio</FormLabel>
-                        <FormControl>
-                            <Textarea placeholder="A brief summary of your career and skills (max 200 chars)." {...field} />
-                        </FormControl>
-                        <FormMessage />
-                        </FormItem>
-                    )}
-                    />
-                <FormField
-                    control={form.control}
-                    name="linkedin"
-                    render={({ field }) => (
-                        <FormItem>
-                        <FormLabel>LinkedIn URL</FormLabel>
-                        <FormControl>
-                            <div className="relative">
-                                <Linkedin className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground"/>
-                                <Input placeholder="https://linkedin.com/in/..." {...field} className="pl-10"/>
-                            </div>
-                        </FormControl>
-                        <FormMessage />
-                        </FormItem>
-                    )}
-                    />
-                <FormField
-                    control={form.control}
-                    name="github"
-                    render={({ field }) => (
-                        <FormItem>
-                        <FormLabel>GitHub URL</FormLabel>
-                        <FormControl>
-                            <div className="relative">
-                                <Github className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground"/>
-                                <Input placeholder="https://github.com/..." {...field} className="pl-10"/>
-                            </div>
-                        </FormControl>
-                        <FormMessage />
-                        </FormItem>
-                    )}
-                    />
-
-                <div>
-                    <FormLabel>Skills</FormLabel>
-                    <div className="flex gap-2 my-2">
-                        <Input
-                        placeholder="Add a new skill (e.g., React)"
-                        value={newSkill}
-                        onChange={(e) => setNewSkill(e.target.value)}
-                        onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddSkill(); }}}
-                        />
-                        <Button type="button" variant="outline" onClick={handleAddSkill}><PlusCircle/> Add</Button>
+                      </Card>
+                    ))}
+                    <Button type="button" variant="outline" onClick={() => appendEdu({ degree: '', field: '', institution: '', year: '' })}><PlusCircle/> Add Education</Button>
+                  </CardContent>
+                </Card>
+              )}
+              {currentStep === 2 && (
+                <Card className="glass-card">
+                  <CardHeader><CardTitle>Work Experience</CardTitle></CardHeader>
+                  <CardContent className="space-y-4">
+                    {expFields.map((field, index) => (
+                      <Card key={field.id} className="p-4 relative">
+                        <Button variant="ghost" size="icon" className="absolute top-2 right-2" onClick={() => removeExp(index)}><Trash2 className="h-4 w-4 text-destructive"/></Button>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <FormField name={`experience.${index}.role`} control={form.control} render={({ field }) => ( <FormItem><FormLabel>Job Title / Role</FormLabel><FormControl><Input placeholder="e.g., Software Engineer Intern" {...field} /></FormControl><FormMessage /></FormItem> )} />
+                          <FormField name={`experience.${index}.company`} control={form.control} render={({ field }) => ( <FormItem><FormLabel>Company</FormLabel><FormControl><Input placeholder="e.g., Google" {...field} /></FormControl><FormMessage /></FormItem> )} />
+                          <FormField name={`experience.${index}.years`} control={form.control} render={({ field }) => ( <FormItem><FormLabel>Duration</FormLabel><FormControl><Input placeholder="e.g., 3 months or 2022-2023" {...field} /></FormControl><FormMessage /></FormItem> )} />
+                        </div>
+                         <FormField name={`experience.${index}.description`} control={form.control} render={({ field }) => ( <FormItem className="mt-4"><FormLabel>Description / Achievements</FormLabel><FormControl><Textarea placeholder="Describe your responsibilities and achievements..." {...field} /></FormControl><FormMessage /></FormItem> )} />
+                      </Card>
+                    ))}
+                    <Button type="button" variant="outline" onClick={() => appendExp({ role: '', company: '', years: '', description: '' })}><PlusCircle/> Add Experience</Button>
+                  </CardContent>
+                </Card>
+              )}
+              {currentStep === 3 && (
+                <Card className="glass-card">
+                  <CardHeader><CardTitle>Skills & Career Goals</CardTitle></CardHeader>
+                  <CardContent className="space-y-6">
+                    <div>
+                        <FormLabel>Skills</FormLabel>
+                        <div className="flex gap-2 my-2">
+                            <Input placeholder="Add a new skill (e.g., React)" value={newSkill} onChange={(e) => setNewSkill(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddSkill(); }}} />
+                            <Button type="button" variant="outline" onClick={handleAddSkill}><PlusCircle/> Add</Button>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                            {skillFields.map((field, index) => (
+                            <Badge key={field.id} variant="secondary" className="text-base py-1 px-3 animate-in fade-in-0 zoom-in-95">
+                                {field.name}
+                                <button type="button" onClick={() => removeSkill(index)} className="ml-2 rounded-full hover:bg-destructive/50 p-0.5"><X className="h-3 w-3"/></button>
+                            </Badge>
+                            ))}
+                        </div>
                     </div>
-                    <div className="flex flex-wrap gap-2">
-                        {skillFields.map((field, index) => (
-                        <Badge key={field.id} variant="secondary" className="text-base py-1 px-3 animate-in fade-in-0 zoom-in-95">
-                            {field.name}
-                            <button type="button" onClick={() => removeSkill(index)} className="ml-2 rounded-full hover:bg-destructive/50 p-0.5"><X className="h-3 w-3"/></button>
-                        </Badge>
-                        ))}
-                    </div>
-                    <FormMessage>{form.formState.errors.skills?.message}</FormMessage>
-                </div>
+                     <FormField name="careerGoals" control={form.control} render={({ field }) => ( <FormItem><FormLabel>Primary Career Goal</FormLabel><FormControl><Input placeholder="e.g., Senior Full-Stack Developer, AI/ML Engineer" {...field} /></FormControl><FormMessage /></FormItem> )} />
+                  </CardContent>
+                </Card>
+              )}
+            </motion.div>
+          </AnimatePresence>
 
-              </CardContent>
-              <CardFooter className="justify-end">
-                <Button type="submit" disabled={isSubmitting} className="bg-gradient-to-r from-primary to-accent min-w-[120px]">
-                  {isSubmitting ? (
-                    <Loader2 className="animate-spin" />
-                  ) : (
-                    <> <Sparkles className="mr-2"/> Save Profile </>
-                  )}
-                </Button>
-              </CardFooter>
-            </Card>
-            </form>
-        </Form>
-      </motion.div>
+          <div className="mt-8 flex justify-between items-center">
+            <Button type="button" variant="outline" onClick={prevStep} disabled={currentStep === 0}>
+                <ArrowLeft className="mr-2"/> Previous
+            </Button>
+
+            {currentStep === steps.length - 1 ? (
+              <Button type="submit" disabled={isSubmitting} className="bg-gradient-to-r from-primary to-accent">
+                {isSubmitting ? <><Loader2 className="animate-spin mr-2" /> Saving...</> : <><Sparkles className="mr-2"/> Save Profile</>}
+              </Button>
+            ) : (
+              <Button type="button" onClick={nextStep}>
+                Next <ArrowRight className="ml-2"/>
+              </Button>
+            )}
+          </div>
+        </form>
+      </Form>
     </div>
   );
 }

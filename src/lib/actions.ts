@@ -51,12 +51,42 @@ export async function getPersonalizedRoadmap(
   }
 }
 
-export async function getResumeJson(input: GenerateResumeFromJsonInput): Promise<{ success: boolean; data?: GenerateResumeFromJsonOutput; error?: string }> {
+export async function getResumeJson(input: any): Promise<{ success: boolean; data?: GenerateResumeFromJsonOutput; error?: string }> {
   try {
-    const result = await generateResumeFromJson(input);
+    // Adapter logic to map from the new complex profile to the simpler resume profile
+    const adaptedInput: GenerateResumeFromJsonInput = {
+        profile: {
+            name: input.profile.name,
+            email: input.profile.email,
+            phone: input.profile.phone,
+            linkedin: input.profile.linkedin,
+            github: input.profile.github,
+            summary: input.profile.bio,
+            experience: input.profile.experience.map((exp: any) => ({
+                role: exp.role,
+                company: exp.company,
+                years: exp.years,
+                description: exp.description
+            })),
+            education: input.profile.education.map((edu: any) => ({
+                degree: edu.degree,
+                field: edu.field,
+                institution: edu.institution,
+                year: edu.year,
+            })),
+            skills: input.profile.skills.map((skill: any) => ({
+                name: skill.name,
+                proficiency: 'Intermediate' // Default proficiency
+            })),
+        },
+        manual: input.manual,
+        jobDescription: input.jobDescription
+    };
+
+    const result = await generateResumeFromJson(adaptedInput);
     return { success: true, data: result };
   } catch (error: any) {
-    console.error(error);
+    console.error("Error in getResumeJson (adapter):", error);
     return { success: false, error: error.message || 'Failed to generate resume.' };
   }
 }

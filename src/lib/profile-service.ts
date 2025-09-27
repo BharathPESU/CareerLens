@@ -2,7 +2,7 @@
 'use client';
 
 import { db } from "./firebaseClient";
-import { doc, getDoc, setDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 import type { UserProfile } from './types';
 
 
@@ -21,49 +21,37 @@ export async function fetchProfile(userId: string): Promise<UserProfile | undefi
     const docSnap = await getDoc(docRef);
 
     if (docSnap.exists()) {
-      // The document data is returned, which should conform to UserProfile
       return docSnap.data() as UserProfile;
     } else {
-      // No document found, return undefined
       return undefined;
     }
   } catch (err: any) {
     console.error('Error fetching profile from Firestore:', err);
-    // In case of error (e.g., offline), return undefined
     return undefined;
   }
 }
 
-
 /**
- * Creates or updates a user's profile in Firestore using the client-side SDK.
- * Uses setDoc with { merge: true } to seamlessly handle both cases.
+ * Creates or updates a user's profile in Firestore.
  * @param userId - The ID of the user.
  * @param data - The user profile data to save.
- * @returns An object with success status and an optional error message.
  */
 export async function saveProfile(
   userId: string,
   data: Partial<UserProfile>
-): Promise<{ success: boolean; error?: string }> {
+): Promise<void> {
   if (!userId) {
-    return { success: false, error: 'User ID is required to save the profile.' };
+    throw new Error('User ID is required to save the profile.');
   }
-  try {
-    const docRef = doc(db, "users", userId);
-    
-    // Add a server timestamp for updates and ensure email is included
-    const dataToSave = {
-      ...data,
-      updatedAt: new Date().toISOString(),
-    };
+  
+  const docRef = doc(db, "users", userId);
+  
+  // Add a server timestamp for updates
+  const dataToSave = {
+    ...data,
+    updatedAt: serverTimestamp(),
+  };
 
-    // Use setDoc with { merge: true } to create or update the document.
-    await setDoc(docRef, dataToSave, { merge: true });
-    
-    return { success: true };
-  } catch (err: any) {
-    console.error('Error saving profile to Firestore:', err);
-    return { success: false, error: err.message || 'Failed to save profile changes. Please check your connection.' };
-  }
+  // Use setDoc with { merge: true } to create or update the document.
+  await setDoc(docRef, dataToSave, { merge: true });
 }

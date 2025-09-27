@@ -67,17 +67,7 @@ export function ProfilePageV2() {
         setIsLoadingProfile(true);
         const profileData = await fetchProfile(user.uid);
         if (profileData) {
-          form.reset({
-            name: profileData.name || user.displayName || '',
-            phone: profileData.phone || '',
-            bio: profileData.bio || '',
-            linkedin: profileData.linkedin || '',
-            github: profileData.github || '',
-            skills: profileData.skills || [],
-            education: profileData.education || [],
-            experience: profileData.experience || [],
-            careerGoals: profileData.careerGoals || '',
-          });
+          form.reset(profileData);
         }
         setIsLoadingProfile(false);
       }
@@ -94,12 +84,26 @@ export function ProfilePageV2() {
   };
 
   async function onSubmit(data: UserProfile) {
-    if (!user) { return; }
+    if (!user) { 
+      toast({ variant: 'destructive', title: 'Not Authenticated', description: 'You must be logged in to save your profile.' });
+      return; 
+    }
     setIsSubmitting(true);
+
+    // CRITICAL: Clean the data to remove any `undefined` values
+    const dataToSave: Partial<UserProfile> = {};
+    for (const key in data) {
+        const value = data[key as keyof UserProfile];
+        if (value !== undefined) {
+            (dataToSave as any)[key] = value;
+        }
+    }
+
     try {
-      await saveProfile(user.uid, data);
+      await saveProfile(user.uid, dataToSave);
       toast({ title: 'Profile Saved! ✅', description: 'Your information has been successfully updated.' });
     } catch (err: any) {
+      console.error("FIRESTORE SAVE ERROR:", err);
       toast({ variant: 'destructive', title: 'Save Failed ❌', description: err.message || 'An unknown error occurred.' });
     } finally {
       setIsSubmitting(false);

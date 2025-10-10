@@ -13,6 +13,7 @@ import { Button } from '../ui/button';
 import { Textarea } from '../ui/textarea';
 import { Input } from '../ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
+import { useFirebase } from '@/lib/use-firebase';
 
 function smallText(s: string | undefined) {
   if (!s) return '';
@@ -65,6 +66,7 @@ const CircularProgress = ({ score }: { score: number }) => {
 export function ResumePage() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { db } = useFirebase();
   
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loadingProfile, setLoadingProfile] = useState(true);
@@ -78,28 +80,31 @@ export function ResumePage() {
 
   useEffect(() => {
     async function loadProfile() {
-      if (user) {
-        const fetchedProfile = await fetchProfile(user.uid);
-        if (fetchedProfile) {
-          setProfile(fetchedProfile);
-          setManual(prev => ({
-            ...prev,
-            fullName: fetchedProfile.name || prev.fullName,
-            email: user.email || prev.email,
-            phone: fetchedProfile.phone || prev.phone,
-            linkedin: fetchedProfile.linkedin || prev.linkedin,
-            github: fetchedProfile.github || prev.github,
-            summary: (fetchedProfile as any).summary || (fetchedProfile as any).bio || prev.summary,
-            skills: (fetchedProfile.skills || []).map(s=>s.name).join(', '),
-            experience: ((fetchedProfile as any).experience || []).map((e: any) => `- ${e.role} at ${e.company} (${e.years} years).`).join('\n'),
-            education: ((fetchedProfile as any).education || []).map((e: any) => `- ${e.degree} in ${e.field} from ${e.institution || 'University'} (${e.year}).`).join('\n'),
-          }));
-        }
+      if (!user || !db) {
+        setLoadingProfile(false);
+        return;
+      }
+      
+      const fetchedProfile = await fetchProfile(db, user.uid);
+      if (fetchedProfile) {
+        setProfile(fetchedProfile);
+        setManual(prev => ({
+          ...prev,
+          fullName: fetchedProfile.name || prev.fullName,
+          email: user.email || prev.email,
+          phone: fetchedProfile.phone || prev.phone,
+          linkedin: fetchedProfile.linkedin || prev.linkedin,
+          github: fetchedProfile.github || prev.github,
+          summary: fetchedProfile.bio || prev.summary,
+          skills: (fetchedProfile.skills || []).map(s=>s.name).join(', '),
+          experience: (fetchedProfile.experience || []).map((e: any) => `- ${e.role} at ${e.company} (${e.years}).`).join('\n'),
+          education: (fetchedProfile.education || []).map((e: any) => `- ${e.degree} in ${e.field} from ${e.institution || 'University'} (${e.year}).`).join('\n'),
+        }));
       }
       setLoadingProfile(false);
     }
     loadProfile();
-  }, [user]);
+  }, [user, db]);
 
 
   async function generateResume() {
@@ -183,7 +188,7 @@ export function ResumePage() {
             <CardHeader><CardTitle>Live Preview</CardTitle></CardHeader>
             <CardContent>
                 <h2 className="text-xl font-bold">{manual.fullName || profile?.name || 'Your Name'}</h2>
-                <p className="text-sm text-muted-foreground mt-1">{smallText(manual.summary || (profile as any)?.bio || 'Short professional summary or objective goes here.')}</p>
+                <p className="text-sm text-muted-foreground mt-1">{smallText(manual.summary || profile?.bio || 'Short professional summary or objective goes here.')}</p>
 
                 <div className="mt-4">
                     <strong className="text-sm font-semibold">Skills:</strong>
@@ -195,11 +200,11 @@ export function ResumePage() {
                 <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                     <h4 className="font-semibold text-sm">Experience</h4>
-                    <p className="text-xs text-muted-foreground mt-1">{smallText(manual.experience || ((profile as any)?.experience?.map((e: any)=>e.role).join(', ') || 'Add experience...'))}</p>
+                    <p className="text-xs text-muted-foreground mt-1">{smallText(manual.experience || (profile?.experience?.map((e: any)=>e.role).join(', ') || 'Add experience...'))}</p>
                     </div>
                     <div>
                     <h4 className="font-semibold text-sm">Education</h4>
-                    <p className="text-xs text-muted-foreground mt-1">{smallText(manual.education || (profile as any)?.education?.map((e: any)=>e.degree).join(', ') || 'Add education...')}</p>
+                    <p className="text-xs text-muted-foreground mt-1">{smallText(manual.education || (profile?.education?.map((e: any)=>e.degree).join(', ') || 'Add education...'))}</p>
                     </div>
                 </div>
             </CardContent>

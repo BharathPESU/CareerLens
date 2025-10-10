@@ -115,6 +115,7 @@ const prompt = ai.definePrompt({
       { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_NONE' },
     ],
   },
+  
 });
 
 const generateResumeFromJsonFlow = ai.defineFlow(
@@ -127,7 +128,7 @@ const generateResumeFromJsonFlow = ai.defineFlow(
     // Add a helper to the input for the prompt template
     const promptInput = {
         ...input,
-        JSON: { stringify: (obj: any) => JSON.stringify(obj, null, 2) },
+        JSON,
     };
     const {output} = await prompt(promptInput);
     return output!;

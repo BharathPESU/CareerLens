@@ -9,19 +9,54 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
+import { useAuth } from '@/hooks/use-auth';
+import { useFirebase } from '@/lib/use-firebase';
+import { fetchProfile } from '@/lib/profile-service';
+import { getAiInterviewerResponse } from '@/lib/actions';
+import type { UserProfile } from '@/lib/types';
+import { Skeleton } from '../ui/skeleton';
 
 type InterviewState = 'uninitialized' | 'configuring' | 'ready' | 'in_progress' | 'finished';
 type Interviewer = 'male' | 'female';
 type InterviewType = 'technical' | 'hr' | 'mixed';
+type TranscriptItem = {
+  speaker: 'ai' | 'user';
+  text: string;
+};
 
 export function AiInterviewerPage() {
+  const { user } = useAuth();
+  const { db } = useFirebase();
+  const { toast } = useToast();
+
   const [interviewState, setInterviewState] = useState<InterviewState>('uninitialized');
   const [interviewer, setInterviewer] = useState<Interviewer>('female');
   const [interviewType, setInterviewType] = useState<InterviewType>('mixed');
   const [hasCameraPermission, setHasCameraPermission] = useState(false);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [loadingProfile, setLoadingProfile] = useState(true);
+  const [isStarting, setIsStarting] = useState(false);
+  const [transcript, setTranscript] = useState<TranscriptItem[]>([]);
   
   const videoRef = useRef<HTMLVideoElement>(null);
-  const { toast } = useToast();
+
+  useEffect(() => {
+     async function loadProfile() {
+      if (user && db) {
+        setLoadingProfile(true);
+        try {
+          const profileData = await fetchProfile(db, user.uid);
+          if (profileData) {
+            setProfile(profileData);
+          }
+        } catch (error) {
+          toast({ variant: 'destructive', title: 'Could not load profile', description: 'Please try again later.'})
+        }
+        setLoadingProfile(false);
+      }
+    }
+    loadProfile();
+  }, [user, db, toast]);
 
   useEffect(() => {
     if (interviewState === 'configuring') {
@@ -58,12 +93,44 @@ export function AiInterviewerPage() {
   }, [interviewState, toast]);
   
   const startInterview = async () => {
-    setInterviewState('in_progress');
-    toast({
-        title: 'Interview Started!',
-        description: 'The AI will now start asking questions.'
+    if (!profile) {
+        toast({ variant: 'destructive', title: 'Profile not loaded', description: 'Cannot start interview without user profile.'});
+        return;
+    }
+    
+    setIsStarting(true);
+    
+    const response = await getAiInterviewerResponse({
+        userProfile: profile,
+        interviewType: interviewType,
     });
-    // Here you would trigger the AI flow to get the first question
+
+    setIsStarting(false);
+
+    if (response.success && response.data) {
+        setTranscript([{ speaker: 'ai', text: response.data.firstQuestion }]);
+        setInterviewState('in_progress');
+        toast({
+            title: 'Interview Started!',
+            description: 'The AI will now start asking questions.'
+        });
+    } else {
+        toast({
+            variant: 'destructive',
+            title: 'Failed to start interview',
+            description: response.error || 'An unknown error occurred.',
+        });
+    }
+  }
+
+  const handleEndInterview = () => {
+    setInterviewState('finished');
+    // Here you would later add logic to generate the final report
+    setTranscript([]);
+    toast({
+        title: 'Interview Finished',
+        description: 'You can review your feedback shortly (feature coming soon).'
+    });
   }
 
   return (
@@ -79,12 +146,16 @@ export function AiInterviewerPage() {
         <Card className="glass-card w-full max-w-lg">
             <CardHeader>
                 <CardTitle>Welcome to the AI Interview Experience</CardTitle>
-                <CardDescription>Get ready to practice and improve your interviewing skills in a realistic setting.</CardDescription>
+                <CardDescription>
+                    {loadingProfile ? 'Loading your profile...' : 'Get ready to practice and improve your interviewing skills.'}
+                </CardDescription>
             </CardHeader>
             <CardContent className="flex justify-center">
+                {loadingProfile ? <Skeleton className="h-12 w-36" /> :
                 <Button size="lg" className="bg-gradient-to-r from-primary to-accent" onClick={() => setInterviewState('configuring')}>
                     Begin Setup
                 </Button>
+                }
             </CardContent>
         </Card>
       )}
@@ -131,8 +202,8 @@ export function AiInterviewerPage() {
                     {!hasCameraPermission && <div className="absolute text-center text-muted-foreground p-4"><Webcam className="w-8 h-8 mx-auto mb-2"/>Awaiting camera permission...</div>}
                 </div>
                 
-                <Button size="lg" className="w-full" onClick={startInterview} disabled={!hasCameraPermission}>
-                    Start Interview
+                <Button size="lg" className="w-full" onClick={startInterview} disabled={!hasCameraPermission || isStarting}>
+                    {isStarting ? <><Loader2 className="animate-spin mr-2"/> Preparing interview...</> : 'Start Interview'}
                 </Button>
             </CardContent>
         </Card>
@@ -165,14 +236,20 @@ export function AiInterviewerPage() {
                         <CardTitle>Live Transcript</CardTitle>
                     </CardHeader>
                     <CardContent className="h-64 overflow-y-auto space-y-4">
-                        <div className="flex gap-3">
-                            <Bot className="w-5 h-5 text-primary shrink-0"/>
-                            <p className="text-sm">Welcome to your interview. Let's start with your background. Can you tell me about yourself?</p>
-                        </div>
-                         <div className="flex gap-3">
-                            <User className="w-5 h-5 text-green-400 shrink-0"/>
-                            <p className="text-sm text-muted-foreground">Sure, I'm a software developer with...</p>
-                        </div>
+                       {transcript.map((item, index) => (
+                           item.speaker === 'ai' ? (
+                                <div key={index} className="flex gap-3">
+                                    <Bot className="w-5 h-5 text-primary shrink-0"/>
+                                    <p className="text-sm">{item.text}</p>
+                                </div>
+                           ) : (
+                                <div key={index} className="flex gap-3">
+                                    <User className="w-5 h-5 text-green-400 shrink-0"/>
+                                    <p className="text-sm text-muted-foreground">{item.text}</p>
+                                </div>
+                           )
+                       ))}
+                       {isStarting && <Loader2 className="animate-spin" />}
                     </CardContent>
                 </Card>
                 <Card className="glass-card">
@@ -180,7 +257,7 @@ export function AiInterviewerPage() {
                         <CardTitle>Controls</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <Button variant="destructive" size="lg" className="w-full" onClick={() => setInterviewState('finished')}>
+                        <Button variant="destructive" size="lg" className="w-full" onClick={handleEndInterview} disabled={interviewState === 'finished'}>
                             <PhoneOff className="mr-2"/>
                             End Interview
                         </Button>
@@ -188,6 +265,23 @@ export function AiInterviewerPage() {
                 </Card>
             </div>
         </div>
+      )}
+
+      {interviewState === 'finished' && (
+           <Card className="glass-card w-full max-w-lg">
+            <CardHeader>
+                <CardTitle>Interview Complete!</CardTitle>
+                <CardDescription>What would you like to do next?</CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-col sm:flex-row gap-4">
+                <Button size="lg" className="flex-1" variant="outline" onClick={() => { setInterviewState('uninitialized'); setTranscript([]); }}>
+                    Start a New Interview
+                </Button>
+                <Button size="lg" className="flex-1 bg-gradient-to-r from-primary to-accent" disabled>
+                   View Feedback (Soon)
+                </Button>
+            </CardContent>
+        </Card>
       )}
     </div>
   );

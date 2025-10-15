@@ -7,6 +7,7 @@ import { createPersonalizedRoadmap } from '@/ai/flows/create-personalized-roadma
 import { generateResumeFromJson } from '@/ai/flows/generate-resume-from-json';
 import { generateInterviewQuestions } from '@/ai/flows/generate-interview-questions';
 import { processPdf } from '@/ai/flows/learning-helper';
+import { generateFirstInterviewQuestion } from '@/ai/flows/ai-interviewer';
 
 import type { GenerateCareerRecommendationsInput, GenerateCareerRecommendationsOutput } from '@/ai/schemas/career-recommendations';
 import type { SkillGapAnalysisInput, SkillGapAnalysisOutput } from '@/ai/flows/perform-skill-gap-analysis';
@@ -15,6 +16,7 @@ import type { GenerateResumeFromJsonInput, GenerateResumeFromJsonOutput } from '
 import type { GenerateInterviewQuestionsInput, GenerateInterviewQuestionsOutput } from '@/ai/flows/generate-interview-questions';
 import type { LearningHelperInput } from '@/ai/schemas/learning-helper';
 import type { LearningOrchestratorOutput } from '@/ai/schemas/learning-orchestrator';
+import type { AiInterviewerInput, AiInterviewerOutput } from '@/ai/schemas/ai-interviewer';
 
 
 export async function getCareerRecommendations(
@@ -53,37 +55,13 @@ export async function getPersonalizedRoadmap(
 
 export async function getResumeJson(input: any): Promise<{ success: boolean; data?: GenerateResumeFromJsonOutput; error?: string }> {
   try {
-    // Adapter logic to map from the new complex profile to the simpler resume profile
-    const adaptedInput: GenerateResumeFromJsonInput = {
-        profile: {
-            name: input.profile.name,
-            email: input.profile.email,
-            phone: input.profile.phone,
-            linkedin: input.profile.linkedin,
-            github: input.profile.github,
-            summary: input.profile.bio,
-            experience: input.profile.experience.map((exp: any) => ({
-                role: exp.role,
-                company: exp.company,
-                years: exp.years,
-                description: exp.description
-            })),
-            education: input.profile.education.map((edu: any) => ({
-                degree: edu.degree,
-                field: edu.field,
-                institution: edu.institution,
-                year: edu.year,
-            })),
-            skills: input.profile.skills.map((skill: any) => ({
-                name: skill.name,
-                proficiency: 'Intermediate' // Default proficiency
-            })),
-        },
+    const payload = {
+        profile: input.profile,
         manual: input.manual,
         jobDescription: input.jobDescription
     };
 
-    const result = await generateResumeFromJson(adaptedInput);
+    const result = await generateResumeFromJson(payload);
     return { success: true, data: result };
   } catch (error: any) {
     console.error("Error in getResumeJson (adapter):", error);
@@ -113,5 +91,18 @@ export async function getLearningHelperOutput(
   } catch (error: any) {
     console.error(error);
     return { success: false, error: error.message || 'Failed to process PDF.' };
+  }
+}
+
+
+export async function getAiInterviewerResponse(
+  input: AiInterviewerInput
+): Promise<{ success: boolean; data?: AiInterviewerOutput; error?: string }> {
+  try {
+    const result = await generateFirstInterviewQuestion(input);
+    return { success: true, data: result };
+  } catch (error: any) {
+    console.error(error);
+    return { success: false, error: error.message || 'Failed to get AI interviewer response.' };
   }
 }

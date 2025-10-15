@@ -3,14 +3,17 @@
  * @fileOverview A Genkit flow for generating a talking avatar video using Veo.
  */
 import { ai } from '@/ai/genkit';
-import { googleAI } from '@genkit-ai/googleai';
+import { googleAI } from '@genkit-ai/google-genai';
 import { GenerateTalkingAvatarInputSchema, GenerateTalkingAvatarOutputSchema, type GenerateTalkingAvatarInput } from '@/ai/schemas/generate-talking-avatar';
 
 async function pollOperation(operation: any): Promise<any> {
     while (!operation.done) {
         await new Promise(resolve => setTimeout(resolve, 5000));
-        // The try/catch is removed here to let the main flow handle promise rejections.
-        operation = await ai.checkOperation(operation);
+        try {
+            operation = await ai.checkOperation(operation);
+        } catch (e) {
+            console.error("Polling failed, but continuing to allow main flow to handle final state.", e);
+        }
     }
     return operation;
 }
@@ -38,7 +41,6 @@ const generateTalkingAvatarFlow = ai.defineFlow(
         throw new Error("Video generation failed to start.");
     }
     
-    // The polling operation is now wrapped in a try/catch in the main flow.
     const finalOperation = await pollOperation(operation);
 
     if (finalOperation.error) {

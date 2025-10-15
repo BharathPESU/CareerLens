@@ -29,11 +29,12 @@ const generateTalkingAvatarFlow = ai.defineFlow(
     const prompt = `${character}. The character is speaking the following words: "${text}"`;
     
     let { operation } = await ai.generate({
-      model: googleAI.model('veo-3.0-generate-preview'),
+      model: googleAI.model('veo-2.0-generate-001'),
       prompt: prompt,
       config: {
+        durationSeconds: 5,
         aspectRatio: '16:9',
-        personGeneration: 'allow_all',
+        personGeneration: 'allow_adult',
       }
     });
 

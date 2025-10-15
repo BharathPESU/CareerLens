@@ -33,7 +33,7 @@ export async function fetchProfile(db: Firestore, userId: string): Promise<UserP
 }
 
 /**
- * Creates or updates a user's profile in Firestore.
+ * Creates or updates a user's profile in the 'users' collection in Firestore.
  * @param db - The Firestore instance.
  * @param userId - The ID of the user.
  * @param data - The user profile data to save.
@@ -47,9 +47,9 @@ export async function saveProfile(
     throw new Error('User ID is required to save the profile.');
   }
   
+  // A reference to the document in the 'users' collection.
   const docRef = doc(db, "users", userId);
   
-  // Create a new object that includes the server-side timestamp.
   const dataToSave = {
     ...data,
     updatedAt: serverTimestamp(),
@@ -59,7 +59,6 @@ export async function saveProfile(
     // Use setDoc with { merge: true } to create or update the document.
     await setDoc(docRef, dataToSave, { merge: true });
   } catch (error) {
-    // Catch any errors from the setDoc call and re-throw them.
     console.error("Error saving profile to Firestore:", error);
     throw error;
   }

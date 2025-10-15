@@ -18,7 +18,7 @@ import type { GenerateInterviewQuestionsInput, GenerateInterviewQuestionsOutput 
 import type { LearningHelperInput } from '@/ai/schemas/learning-helper';
 import type { LearningOrchestratorOutput } from '@/ai/schemas/learning-orchestrator';
 import type { AiInterviewerInput, AiInterviewerOutput } from '@/ai/schemas/ai-interviewer';
-import type { GenerateTalkingAvatarInput, GenerateTalkingAvatarOutput } from '@/ai/flows/generate-talking-avatar';
+import type { GenerateTalkingAvatarInput, GenerateTalkingAvatarOutput } from '@/ai/schemas/generate-talking-avatar';
 
 
 export async function getCareerRecommendations(
@@ -73,7 +73,7 @@ export async function getResumeJson(input: any): Promise<{ success: boolean; dat
 
 export async function getInterviewQuestions(
   input: GenerateInterviewQuestionsInput
-): Promise<{ success: boolean; data?: GenerateInterviewQuestionsOutput; error?: string }> {
+): Promise<{ success_boolean; data?: GenerateInterviewQuestionsOutput; error?: string }> {
   try {
     const result = await generateInterviewQuestions(input);
     return { success: true, data: result };

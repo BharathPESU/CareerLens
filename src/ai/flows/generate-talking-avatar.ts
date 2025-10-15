@@ -3,19 +3,8 @@
  * @fileOverview A Genkit flow for generating a talking avatar video using Veo.
  */
 import { ai } from '@/ai/genkit';
-import { z } from 'genkit';
 import { googleAI } from '@genkit-ai/googleai';
-
-export const GenerateTalkingAvatarInputSchema = z.object({
-  text: z.string().describe('The text the avatar should speak.'),
-  character: z.string().describe('A description of the avatar character.'),
-});
-export type GenerateTalkingAvatarInput = z.infer<typeof GenerateTalkingAvatarInputSchema>;
-
-export const GenerateTalkingAvatarOutputSchema = z.object({
-  videoUrl: z.string().url().describe('The data URL of the generated video.'),
-});
-export type GenerateTalkingAvatarOutput = z.infer<typeof GenerateTalkingAvatarOutputSchema>;
+import { GenerateTalkingAvatarInputSchema, GenerateTalkingAvatarOutputSchema, type GenerateTalkingAvatarInput } from '@/ai/schemas/generate-talking-avatar';
 
 async function pollOperation(operation: any): Promise<any> {
     while (!operation.done) {
@@ -31,10 +20,9 @@ async function pollOperation(operation: any): Promise<any> {
     return operation;
 }
 
-
-export const generateTalkingAvatar = ai.defineFlow(
+const generateTalkingAvatarFlow = ai.defineFlow(
   {
-    name: 'generateTalkingAvatar',
+    name: 'generateTalkingAvatarFlow',
     inputSchema: GenerateTalkingAvatarInputSchema,
     outputSchema: GenerateTalkingAvatarOutputSchema,
   },
@@ -77,11 +65,16 @@ export const generateTalkingAvatar = ai.defineFlow(
         throw new Error(`Failed to download video file: ${videoDownloadResponse.statusText}`);
     }
 
-    const videoBuffer = await videoDownloadResponse.buffer();
-    const videoDataUrl = `data:${videoPart.media.contentType || 'video/mp4'};base64,${videoBuffer.toString('base64')}`;
+    const videoBuffer = await videoDownloadResponse.arrayBuffer();
+    const videoDataUrl = `data:${videoPart.media.contentType || 'video/mp4'};base64,${Buffer.from(videoBuffer).toString('base64')}`;
 
     return {
       videoUrl: videoDataUrl,
     };
   }
 );
+
+
+export async function generateTalkingAvatar(input: GenerateTalkingAvatarInput) {
+    return generateTalkingAvatarFlow(input);
+}

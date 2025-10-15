@@ -1,6 +1,6 @@
 /**
  * @fileOverview This file defines the Zod schemas and TypeScript types
- * for the conversational AI Interviewer flow.
+ * for the stateful, conversational AI Interviewer flow.
  */
 
 import { z } from 'genkit';
@@ -19,6 +19,7 @@ export const AiInterviewerFlowInputSchema = z.object({
     .enum(['technical', 'hr', 'mixed'])
     .describe('The type of interview to be conducted.'),
   jobRole: z.string().describe("The user's target job role."),
+  jobDescription: z.string().optional().describe('The description of the role the user is interviewing for.'),
   transcript: z
     .array(transcriptItemSchema)
     .describe('The history of the conversation so far.'),
@@ -28,9 +29,15 @@ export type AiInterviewerFlowInput = z.infer<
 >;
 
 export const AiInterviewerFlowOutputSchema = z.object({
-  response: z
+  privateAnalysis: z
     .string()
-    .describe("The AI interviewer's next response or question."),
+    .describe("A brief, private analysis of the user's previous answer. E.g., 'Good use of the STAR method, but the user could have quantified the result more effectively.'"),
+  responseText: z
+    .string()
+    .describe("The text the AI will say out loud. E.g., 'Thanks for sharing that. Could you tell me about a time you had to handle a major disagreement with a colleague?'"),
+  questionCategory: z
+    .enum(['Behavioral', 'Technical', 'Situational', 'Opening/Closing'])
+    .describe("The category of the question being asked."),
 });
 export type AiInterviewerFlowOutput = z.infer<
   typeof AiInterviewerFlowOutputSchema

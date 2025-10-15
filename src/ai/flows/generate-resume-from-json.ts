@@ -125,12 +125,11 @@ const generateResumeFromJsonFlow = ai.defineFlow(
     outputSchema: GenerateResumeFromJsonOutputSchema,
   },
   async input => {
-    // Add a helper to the input for the prompt template
-    const promptInput = {
-        ...input,
+    const {output} = await prompt(input, {
+      helpers: {
         JSON,
-    };
-    const {output} = await prompt(promptInput);
+      },
+    });
     return output!;
   }
 );

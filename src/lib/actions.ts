@@ -59,10 +59,12 @@ export async function getPersonalizedRoadmap(
 
 export async function getResumeJson(input: any): Promise<{ success: boolean; data?: GenerateResumeFromJsonOutput; error?: string }> {
   try {
+    // Flatten the profile data into the main payload
     const payload = {
-        profile: input.profile,
-        manual: input.manual,
-        jobDescription: input.jobDescription
+      ...(input.profile || {}), // Spread the fields from the nested profile object
+      manual: input.manual,
+      jobDescription: input.jobDescription,
+      email: input.profile.email,
     };
 
     const result = await generateResumeFromJson(payload);

@@ -1,3 +1,4 @@
+
 'use server';
 
 /**
@@ -10,33 +11,10 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
+import { userProfileSchema } from '@/lib/types';
 
 // Input schema now includes manual overrides and an optional job description.
-const GenerateResumeFromJsonInputSchema = z.object({
-  profile: z.object({
-    name: z.string(),
-    email: z.string(),
-    phone: z.string().optional(),
-    linkedin: z.string().url().optional(),
-    github: z.string().url().optional(),
-    summary: z.string().optional(),
-    experience: z.array(z.object({
-        role: z.string(),
-        company: z.string(),
-        years: z.string(),
-        description: z.string().optional(),
-    })),
-    education: z.array(z.object({
-        degree: z.string(),
-        field: z.string(),
-        institution: z.string().optional(),
-        year: z.string(),
-    })),
-    skills: z.array(z.object({
-        name: z.string(),
-        proficiency: z.string(),
-    })),
-  }).describe('The user\'s saved profile data from Firestore.'),
+export const GenerateResumeFromJsonInputSchema = userProfileSchema.extend({
   manual: z.object({
       fullName: z.string().optional(),
       email: z.string().optional(),
@@ -50,6 +28,7 @@ const GenerateResumeFromJsonInputSchema = z.object({
       skills: z.string().optional().describe('Comma-separated list of skills.'),
   }).describe('Manual overrides or additions from the user.'),
   jobDescription: z.string().optional().describe('The job description to compare against for ATS scoring.'),
+  email: z.string().email().optional(), // Add email from auth user
 });
 export type GenerateResumeFromJsonInput = z.infer<typeof GenerateResumeFromJsonInputSchema>;
 
@@ -76,7 +55,7 @@ const prompt = ai.definePrompt({
 
   **Instructions:**
 
-  1.  **Merge Data:** Combine the user's saved \`profile\` data with their \`manual\` input. The manual input should take precedence if there's an overlap.
+  1.  **Merge Data:** Combine the user's saved profile data with their manual input. The manual input should take precedence if there's an overlap.
   2.  **Analyze and Rewrite:**
       *   Rewrite experience and project descriptions into concise, professional bullet points. Start each bullet with a strong action verb.
       *   Focus on quantifiable achievements (e.g., "Increased sales by 20%" or "Reduced server costs by 15%").
@@ -91,14 +70,40 @@ const prompt = ai.definePrompt({
       *   Give a list of actionable \`recommendations\` to improve the resume and its ATS score.
 
   **User Profile Data:**
-  \`\`\`json
-  {{{JSON.stringify profile}}}
-  \`\`\`
+  Name: {{name}}
+  Email: {{email}}
+  Phone: {{phone}}
+  LinkedIn: {{linkedin}}
+  GitHub: {{github}}
+  Summary: {{bio}}
+  Career Goals: {{careerGoals}}
+  
+  Experience:
+  {{#each experience}}
+  - Role: {{this.role}}, Company: {{this.company}}, Duration: {{this.years}}, Description: {{this.description}}
+  {{/each}}
+  
+  Education:
+  {{#each education}}
+  - Degree: {{this.degree}}, Field: {{this.field}}, Institution: {{this.institution}}, Year: {{this.year}}
+  {{/each}}
+  
+  Skills:
+  {{#each skills}}
+  - {{this.name}}
+  {{/each}}
 
-  **User Manual Input:**
-  \`\`\`json
-  {{{JSON.stringify manual}}}
-  \`\`\`
+  **User Manual Input (Overrides Profile):**
+  Full Name: {{manual.fullName}}
+  Email: {{manual.email}}
+  Phone: {{manual.phone}}
+  LinkedIn: {{manual.linkedin}}
+  GitHub: {{manual.github}}
+  Summary: {{manual.summary}}
+  Experience: {{manual.experience}}
+  Education: {{manual.education}}
+  Projects: {{manual.projects}}
+  Skills: {{manual.skills}}
   
   **Target Job Description:**
   \`\`\`
@@ -125,11 +130,7 @@ const generateResumeFromJsonFlow = ai.defineFlow(
     outputSchema: GenerateResumeFromJsonOutputSchema,
   },
   async input => {
-    const {output} = await prompt(input, {
-      helpers: {
-        JSON,
-      },
-    });
+    const {output} = await prompt(input);
     return output!;
   }
 );

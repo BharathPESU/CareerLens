@@ -44,6 +44,9 @@ const generateTalkingAvatarFlow = ai.defineFlow(
     const finalOperation = await pollOperation(operation);
 
     if (finalOperation.error) {
+      if (finalOperation.error.message.includes('429')) {
+        throw new Error('API rate limit exceeded. Please wait a few moments and try again.');
+      }
       throw new Error(`Video generation failed: ${finalOperation.error.message}`);
     }
 

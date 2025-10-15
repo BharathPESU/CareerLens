@@ -35,7 +35,7 @@ const generateTalkingAvatarFlow = ai.defineFlow(
       prompt: prompt,
       config: {
         aspectRatio: '16:9',
-        personGeneration: 'allow_adult',
+        personGeneration: 'allow_all',
       }
     });
 

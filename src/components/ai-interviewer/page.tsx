@@ -54,6 +54,8 @@ export function AiInterviewerPage() {
           const profileData = await fetchProfile(db, user.uid);
           if (profileData) {
             setProfile(profileData);
+          } else {
+            toast({ variant: 'destructive', title: 'Profile Not Found', description: 'Please complete your profile first.'})
           }
         } catch (error) {
           toast({ variant: 'destructive', title: 'Could not load profile', description: 'Please try again later.'})
@@ -93,6 +95,14 @@ export function AiInterviewerPage() {
       stream.getAudioTracks().forEach(track => track.enabled = isMicEnabled);
     }
   }, [isCameraEnabled, isMicEnabled, interviewState]);
+
+  useEffect(() => {
+    if (avatarVideoUrl && avatarVideoRef.current) {
+        avatarVideoRef.current.load();
+        avatarVideoRef.current.play().catch(error => console.error("Video autoplay failed:", error));
+    }
+  }, [avatarVideoUrl]);
+
 
   const cleanupMedia = () => {
     if (userVideoRef.current && userVideoRef.current.srcObject) {
@@ -184,9 +194,9 @@ export function AiInterviewerPage() {
 
             {interviewState === 'uninitialized' && (
                 <Card className="glass-card w-full max-w-lg">
-                    <CardHeader><CardTitle>Welcome!</CardTitle><CardDescription>{loadingProfile ? 'Loading your profile...' : 'Get ready to practice.'}</CardDescription></CardHeader>
+                    <CardHeader><CardTitle>Welcome!</CardTitle><CardDescription>{loadingProfile ? 'Loading your profile...' : (profile ? 'Get ready to practice.' : 'Please complete your profile first.')}</CardDescription></CardHeader>
                     <CardContent className="flex justify-center">
-                        {loadingProfile ? <Skeleton className="h-12 w-36" /> : <Button size="lg" className="bg-gradient-to-r from-primary to-accent" onClick={() => setInterviewState('configuring')}>Begin Setup</Button>}
+                        {loadingProfile ? <Skeleton className="h-12 w-36" /> : <Button size="lg" className="bg-gradient-to-r from-primary to-accent" onClick={() => setInterviewState('configuring')} disabled={!profile}>Begin Setup</Button>}
                     </CardContent>
                 </Card>
             )}
@@ -250,7 +260,7 @@ export function AiInterviewerPage() {
             {/* User Video Thumbnail */}
              <motion.div drag dragMomentum={false} className="absolute bottom-4 right-4 w-48 h-36 md:w-64 md:h-48 rounded-xl overflow-hidden glass-card cursor-grab active:cursor-grabbing">
                 <AnimatePresence>
-                {isCameraEnabled ? (
+                {(hasCameraPermission && isCameraEnabled) ? (
                     <motion.video 
                         ref={userVideoRef} 
                         className="w-full h-full object-cover" 
@@ -268,8 +278,7 @@ export function AiInterviewerPage() {
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                      >
-                        <VideoOff className="w-8 h-8 mb-2"/>
-                        <p className="text-sm">Camera is off</p>
+                        {isCameraEnabled ? <><Webcam className="w-8 h-8 mb-2"/><p className="text-sm">User Camera</p></> : <><VideoOff className="w-8 h-8 mb-2"/><p className="text-sm">Camera is off</p></>}
                     </motion.div>
                 )}
                 </AnimatePresence>

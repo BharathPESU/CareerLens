@@ -9,6 +9,7 @@ import { generateInterviewQuestions } from '@/ai/flows/generate-interview-questi
 import { processPdf } from '@/ai/flows/learning-helper';
 import { generateFirstInterviewQuestion } from '@/ai/flows/ai-interviewer';
 import { generateTalkingAvatar } from '@/ai/flows/generate-talking-avatar';
+import { aiInterviewerFollowup } from '@/ai/flows/ai-interviewer-flow';
 
 import type { GenerateCareerRecommendationsInput, GenerateCareerRecommendationsOutput } from '@/ai/schemas/career-recommendations';
 import type { SkillGapAnalysisInput, SkillGapAnalysisOutput } from '@/ai/flows/perform-skill-gap-analysis';
@@ -19,6 +20,7 @@ import type { LearningHelperInput } from '@/ai/schemas/learning-helper';
 import type { LearningOrchestratorOutput } from '@/ai/schemas/learning-orchestrator';
 import type { AiInterviewerInput, AiInterviewerOutput } from '@/ai/schemas/ai-interviewer';
 import type { GenerateTalkingAvatarInput, GenerateTalkingAvatarOutput } from '@/ai/schemas/generate-talking-avatar';
+import type { AiInterviewerFlowInput, AiInterviewerFlowOutput } from '@/ai/schemas/ai-interviewer-flow';
 
 
 export async function getCareerRecommendations(
@@ -73,7 +75,7 @@ export async function getResumeJson(input: any): Promise<{ success: boolean; dat
 
 export async function getInterviewQuestions(
   input: GenerateInterviewQuestionsInput
-): Promise<{ success_boolean; data?: GenerateInterviewQuestionsOutput; error?: string }> {
+): Promise<{ success: boolean; data?: GenerateInterviewQuestionsOutput; error?: string }> {
   try {
     const result = await generateInterviewQuestions(input);
     return { success: true, data: result };
@@ -119,5 +121,17 @@ export async function generateAvatarVideo(
   } catch (error: any) {
     console.error(error);
     return { success: false, error: error.message || 'Failed to generate avatar video.' };
+  }
+}
+
+export async function getAiInterviewerFollowup(
+  input: AiInterviewerFlowInput
+): Promise<{ success: boolean; data?: AiInterviewerFlowOutput; error?: string }> {
+  try {
+    const result = await aiInterviewerFollowup(input);
+    return { success: true, data: result };
+  } catch (error: any) {
+    console.error(error);
+    return { success: false, error: error.message || 'Failed to get AI followup response.' };
   }
 }

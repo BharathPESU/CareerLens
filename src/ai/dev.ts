@@ -11,4 +11,5 @@ import '@/ai/flows/generate-resume-from-json.ts';
 import '@/ai/flows/learning-helper.ts';
 import '@/ai/flows/learning-orchestrator.ts';
 import '@/ai/flows/ai-interviewer.ts';
+import '@/ai/flows/ai-interviewer-flow.ts';
 import '@/ai/flows/generate-talking-avatar.ts';

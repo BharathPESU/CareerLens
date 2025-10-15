@@ -7,7 +7,8 @@ import {
   MessageSquare,
   User,
   ArrowRight,
-  BrainCircuit
+  BrainCircuit,
+  Bot
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -44,6 +45,13 @@ const features = [
     description:
       'Practice with AI-generated questions and model answers for any role.',
     link: '/interview-prep',
+  },
+   {
+    icon: <Bot className="h-8 w-8 text-primary" />,
+    title: 'AI Interviewer',
+    description:
+      'Engage in a mock interview with a hyper-realistic AI avatar.',
+    link: '/ai-interviewer',
   },
   {
     icon: <User className="h-8 w-8 text-primary" />,

@@ -108,6 +108,10 @@ export function ProfilePageV2() {
     }
   }
 
+  const handleSave = () => {
+    form.handleSubmit(onSubmit)();
+  };
+
   const nextStep = () => setCurrentStep(prev => (prev < steps.length - 1 ? prev + 1 : prev));
   const prevStep = () => setCurrentStep(prev => (prev > 0 ? prev - 1 : prev));
 
@@ -137,7 +141,7 @@ export function ProfilePageV2() {
       </div>
 
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)}>
+        <form>
           <AnimatePresence mode="wait">
             <motion.div key={currentStep} initial={{ opacity: 0, x: 50 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -50 }} transition={{ duration: 0.3 }}>
               {currentStep === 0 && (
@@ -218,24 +222,24 @@ export function ProfilePageV2() {
               )}
             </motion.div>
           </AnimatePresence>
-
-          <div className="mt-8 flex justify-between items-center">
-            <Button type="button" variant="outline" onClick={prevStep} disabled={currentStep === 0}>
-                <ArrowLeft className="mr-2"/> Previous
-            </Button>
-
-            {currentStep === steps.length - 1 ? (
-              <Button type="submit" disabled={isSubmitting} className="bg-gradient-to-r from-primary to-accent">
-                {isSubmitting ? <><Loader2 className="animate-spin mr-2" /> Saving...</> : <><Sparkles className="mr-2"/> Save Profile</>}
-              </Button>
-            ) : (
-              <Button type="button" onClick={nextStep}>
-                Next <ArrowRight className="ml-2"/>
-              </Button>
-            )}
-          </div>
         </form>
       </Form>
+      
+      <div className="mt-8 flex justify-between items-center">
+        <Button type="button" variant="outline" onClick={prevStep} disabled={currentStep === 0}>
+            <ArrowLeft className="mr-2"/> Previous
+        </Button>
+
+        {currentStep === steps.length - 1 ? (
+          <Button type="button" onClick={handleSave} disabled={isSubmitting} className="bg-gradient-to-r from-primary to-accent">
+            {isSubmitting ? <><Loader2 className="animate-spin mr-2" /> Saving...</> : <><Sparkles className="mr-2"/> Save Profile</>}
+          </Button>
+        ) : (
+          <Button type="button" onClick={nextStep}>
+            Next <ArrowRight className="ml-2"/>
+          </Button>
+        )}
+      </div>
     </div>
   );
 }

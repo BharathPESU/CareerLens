@@ -11,7 +11,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
-import { useFirebase } from '@/lib/use-firebase';
 import { saveProfile, fetchProfile } from '@/lib/profile-service';
 import { userProfileSchema, type UserProfile } from '@/lib/types';
 
@@ -24,6 +23,7 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '../ui/skeleton';
 import { Progress } from '../ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import { useFirebase } from '@/lib/firebase-provider';
 
 
 const steps = [

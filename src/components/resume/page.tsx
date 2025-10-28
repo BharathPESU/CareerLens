@@ -13,7 +13,7 @@ import { Button } from '../ui/button';
 import { Textarea } from '../ui/textarea';
 import { Input } from '../ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
-import { useFirebase } from '@/lib/use-firebase';
+import { useFirebase } from '@/lib/firebase-provider';
 
 function smallText(s: string | undefined) {
   if (!s) return '';

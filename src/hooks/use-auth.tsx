@@ -11,7 +11,7 @@ import {
   signInWithPopup,
   User,
 } from 'firebase/auth';
-import { useFirebase } from '@/lib/use-firebase'; 
+import { useFirebase } from '@/lib/firebase-provider'; 
 
 interface AuthContextType {
   user: User | null;

@@ -7,13 +7,13 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
-import { useFirebase } from '@/lib/use-firebase';
 import { fetchProfile } from '@/lib/profile-service';
 import type { UserProfile } from '@/lib/types';
 import type { TranscriptItem } from '@/ai/schemas/ai-interviewer-flow';
 import { getAiInterviewerResponse, getAiInterviewerFollowup } from '@/lib/actions';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { ScrollArea } from '../ui/scroll-area';
+import { useFirebase } from '@/lib/firebase-provider';
 
 type InterviewState = 'uninitialized' | 'configuring' | 'in_progress' | 'finished';
 type InterviewType = 'technical' | 'hr' | 'mixed';

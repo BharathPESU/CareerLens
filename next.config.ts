@@ -28,6 +28,12 @@ const nextConfig: NextConfig = {
         port: '',
         pathname: '/**',
       },
+       {
+        protocol: 'https',
+        hostname: 'cdn.d-id.com',
+        port: '',
+        pathname: '/**',
+      },
     ],
   },
   serverActions: {

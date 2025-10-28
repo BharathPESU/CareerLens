@@ -8,7 +8,6 @@ import { generateResumeFromJson } from '@/ai/flows/generate-resume-from-json';
 import { generateInterviewQuestions } from '@/ai/flows/generate-interview-questions';
 import { processPdf } from '@/ai/flows/learning-helper';
 import { generateFirstInterviewQuestion } from '@/ai/flows/ai-interviewer';
-import { aiInterviewerFollowup } from '@/ai/flows/ai-interviewer-flow';
 
 import type { GenerateCareerRecommendationsInput, GenerateCareerRecommendationsOutput } from '@/ai/schemas/career-recommendations';
 import type { SkillGapAnalysisInput, SkillGapAnalysisOutput } from '@/ai/schemas/perform-skill-gap-analysis';
@@ -18,7 +17,6 @@ import type { GenerateInterviewQuestionsInput, GenerateInterviewQuestionsOutput 
 import type { LearningHelperInput } from '@/ai/schemas/learning-helper';
 import type { LearningOrchestratorOutput } from '@/ai/schemas/learning-orchestrator';
 import type { AiInterviewerInput, AiInterviewerOutput } from '@/ai/schemas/ai-interviewer';
-import type { AiInterviewerFlowInput, AiInterviewerFlowOutput } from '@/ai/schemas/ai-interviewer-flow';
 
 
 export async function getCareerRecommendations(
@@ -108,17 +106,5 @@ export async function getAiInterviewerResponse(
   } catch (error: any) {
     console.error(error);
     return { success: false, error: error.message || 'Failed to get AI interviewer response.' };
-  }
-}
-
-export async function getAiInterviewerFollowup(
-  input: AiInterviewerFlowInput
-): Promise<{ success: boolean; data?: AiInterviewerFlowOutput; error?: string }> {
-  try {
-    const result = await aiInterviewerFollowup(input);
-    return { success: true, data: result };
-  } catch (error: any) {
-    console.error(error);
-    return { success: false, error: error.message || 'Failed to get AI followup response.' };
   }
 }

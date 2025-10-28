@@ -7,7 +7,7 @@
 import { z } from 'genkit';
 import { userProfileSchema } from '@/lib/types';
 
-const transcriptItemSchema = z.object({
+export const transcriptItemSchema = z.object({
   speaker: z.enum(['user', 'ai']),
   text: z.string(),
   timestamp: z.string(),
@@ -29,7 +29,10 @@ export type AiInterviewerInput = z.infer<
   typeof AiInterviewerInputSchema
 >;
 
-export const AiInterviewerFlowOutputSchema = z.any();
+export const AiInterviewerFlowOutputSchema = z.object({
+    followUp: z.string().describe("The AI's next question or statement in the conversation."),
+    isEndOfInterview: z.boolean().describe("Set to true only when the interview should be concluded."),
+});
 export type AiInterviewerFlowOutput = z.infer<
   typeof AiInterviewerFlowOutputSchema
 >;

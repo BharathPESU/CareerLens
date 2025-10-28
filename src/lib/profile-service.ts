@@ -1,3 +1,4 @@
+
 'use client';
 
 import { doc, getDoc, setDoc, serverTimestamp, type Firestore } from "firebase/firestore";
@@ -11,6 +12,10 @@ import type { UserProfile } from './types';
  * @returns The user profile data or undefined if not found.
  */
 export async function fetchProfile(db: Firestore, userId: string): Promise<UserProfile | undefined> {
+  if (!db) {
+    console.warn('Firestore instance is not available. Cannot fetch profile.');
+    return undefined;
+  }
   if (!userId) {
     console.warn('User ID is not provided. Cannot fetch profile.');
     return undefined;

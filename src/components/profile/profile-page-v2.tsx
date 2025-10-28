@@ -36,7 +36,7 @@ const steps = [
 export function ProfilePageV2() {
   const { toast } = useToast();
   const { user, loading: authLoading } = useAuth();
-  const { db } = useFirebase();
+  const { db, loading: firebaseLoading } = useFirebase();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
   const [currentStep, setCurrentStep] = useState(0);
@@ -66,20 +66,32 @@ export function ProfilePageV2() {
     async function loadProfile() {
       if (user && db) {
         setIsLoadingProfile(true);
-        const profileData = await fetchProfile(db, user.uid);
-        if (profileData) {
-          form.reset(profileData);
-        } else {
-          // If no profile exists, set the user's name from auth if available
-          form.setValue('name', user.displayName || '');
+        try {
+            const profileData = await fetchProfile(db, user.uid);
+            if (profileData) {
+            form.reset(profileData);
+            } else {
+            // If no profile exists, set the user's name from auth if available
+            form.setValue('name', user.displayName || '');
+            }
+        } catch (error) {
+            toast({
+                variant: 'destructive',
+                title: 'Failed to load profile',
+                description: 'Could not fetch your profile data. Please try again later.'
+            })
         }
-        setIsLoadingProfile(false);
-      } else if (!authLoading) {
         setIsLoadingProfile(false);
       }
     }
-    loadProfile();
-  }, [user, db, authLoading, form]);
+    // Only run when auth and firebase are done loading and we have a user and db instance
+    if (!authLoading && !firebaseLoading && user && db) {
+        loadProfile();
+    } else if (!authLoading && !firebaseLoading) {
+        // If everything is loaded but there's no user/db, stop loading.
+        setIsLoadingProfile(false);
+    }
+  }, [user, db, authLoading, firebaseLoading, form, toast]);
   
   const handleAddSkill = () => {
     const trimmedSkill = newSkill.trim();
@@ -110,7 +122,7 @@ export function ProfilePageV2() {
   const nextStep = () => setCurrentStep(prev => (prev < steps.length - 1 ? prev + 1 : prev));
   const prevStep = () => setCurrentStep(prev => (prev > 0 ? prev - 1 : prev));
 
-  if (authLoading || isLoadingProfile) {
+  if (authLoading || isLoadingProfile || firebaseLoading) {
     return <div className="p-8 max-w-4xl mx-auto"><Skeleton className="h-96 w-full" /></div>;
   }
 

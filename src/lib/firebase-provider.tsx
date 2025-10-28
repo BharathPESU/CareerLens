@@ -3,7 +3,7 @@
 
 import React, { createContext, useEffect, useState, useContext } from 'react';
 import { initializeApp, getApps, getApp, type FirebaseApp } from 'firebase/app';
-import { getAuth, type Auth } from 'firebase/auth';
+import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, GoogleAuthProvider, signInWithPopup, type Auth, type User } from 'firebase/auth';
 import { getFirestore, enableIndexedDbPersistence, type Firestore } from 'firebase/firestore';
 
 const firebaseConfig = {
@@ -19,38 +19,51 @@ interface FirebaseContextType {
   app: FirebaseApp | null;
   auth: Auth | null;
   db: Firestore | null;
+  user: User | null;
   loading: boolean;
+  signUp: (email: string, pass: string) => Promise<any>;
+  signIn: (email: string, pass: string) => Promise<any>;
+  googleSignIn: () => Promise<any>;
+  logOut: () => Promise<any>;
 }
 
 const FirebaseContext = createContext<FirebaseContextType>({
   app: null,
   auth: null,
   db: null,
+  user: null,
   loading: true,
+  signUp: async () => {},
+  signIn: async () => {},
+  googleSignIn: async () => {},
+  logOut: async () => {},
 });
 
 export function FirebaseProvider({ children }: { children: React.ReactNode }) {
-  const [firebase, setFirebase] = useState<Omit<FirebaseContextType, 'loading'>>({ app: null, auth: null, db: null });
+  const [app, setApp] = useState<FirebaseApp | null>(null);
+  const [auth, setAuth] = useState<Auth | null>(null);
+  const [db, setDb] = useState<Firestore | null>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    let app: FirebaseApp;
+    let _app: FirebaseApp;
     if (!getApps().length) {
       if (firebaseConfig.projectId) {
-        app = initializeApp(firebaseConfig);
+        _app = initializeApp(firebaseConfig);
       } else {
         console.error("Firebase config is missing Project ID. App cannot be initialized.");
         setLoading(false);
         return;
       }
     } else {
-      app = getApp();
+      _app = getApp();
     }
 
-    const auth = getAuth(app);
-    const db = getFirestore(app);
+    const _auth = getAuth(_app);
+    const _db = getFirestore(_app);
 
-    enableIndexedDbPersistence(db).catch((err) => {
+    enableIndexedDbPersistence(_db).catch((err) => {
       if (err.code == 'failed-precondition') {
         console.warn('Firestore persistence failed: Multiple tabs open.');
       } else if (err.code == 'unimplemented') {
@@ -58,13 +71,53 @@ export function FirebaseProvider({ children }: { children: React.ReactNode }) {
       }
     });
 
-    setFirebase({ app, auth, db });
-    setLoading(false);
+    setApp(_app);
+    setAuth(_auth);
+    setDb(_db);
 
+    const unsubscribe = onAuthStateChanged(_auth, (currentUser) => {
+      setUser(currentUser);
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
   }, []);
 
+  const signUp = (email: string, pass: string) => {
+    if (!auth) throw new Error("Auth service not available");
+    return createUserWithEmailAndPassword(auth, email, pass);
+  };
+
+  const signIn = (email: string, pass: string) => {
+    if (!auth) throw new Error("Auth service not available");
+    return signInWithEmailAndPassword(auth, email, pass);
+  };
+  
+  const googleSignIn = async () => {
+    if (!auth) throw new Error("Auth service not available");
+    const provider = new GoogleAuthProvider();
+    return signInWithPopup(auth, provider);
+  }
+
+  const logOut = () => {
+    if (!auth) throw new Error("Auth service not available");
+    return signOut(auth);
+  };
+
+  const value = {
+    app,
+    auth,
+    db,
+    user,
+    loading,
+    signUp,
+    signIn,
+    googleSignIn,
+    logOut
+  };
+
   return (
-    <FirebaseContext.Provider value={{ ...firebase, loading }}>
+    <FirebaseContext.Provider value={value}>
       {children}
     </FirebaseContext.Provider>
   );
@@ -77,3 +130,13 @@ export const useFirebase = () => {
     }
     return context;
 };
+
+export const useAuth = () => {
+    const context = useContext(FirebaseContext);
+    if (context === undefined) {
+        throw new Error('useAuth must be used within a FirebaseProvider');
+    }
+    const { user, loading, signUp, signIn, googleSignIn, logOut } = context;
+    return { user, loading, signUp, signIn, googleSignIn, logOut };
+};
+

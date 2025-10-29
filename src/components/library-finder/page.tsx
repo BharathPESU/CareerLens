@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { LibrarySquare, Map, Search, Wifi, Loader2, LocateFixed, Star } from 'lucide-react';
 import { GoogleMap, useJsApiLoader, MarkerF } from '@react-google-maps/api';
@@ -17,14 +17,12 @@ const containerStyle = {
   borderRadius: '1rem',
 };
 
-const mapLibraries = ['places'] as any;
-
 export function LibraryFinderPage() {
   const { toast } = useToast();
   const { isLoaded, loadError } = useJsApiLoader({
     id: 'google-map-script',
     googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY!,
-    libraries: mapLibraries,
+    libraries: ['places'],
   });
 
   const [map, setMap] = useState<google.maps.Map | null>(null);

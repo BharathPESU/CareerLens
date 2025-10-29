@@ -36,7 +36,7 @@ export const aiInterviewerFlow = ai.defineFlow(
     outputSchema: AiInterviewerFlowOutputSchema,
   },
   async (input) => {
-    const { jobDescription, transcript, avatarType } = input;
+    const { jobDescription, transcript } = input;
 
     const model = ai.getGenerator('googleai/gemini-2.5-flash-lite');
 

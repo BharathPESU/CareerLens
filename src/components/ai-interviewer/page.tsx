@@ -14,31 +14,58 @@ import type { TranscriptItem } from '@/ai/schemas/ai-interviewer-flow';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 
 // --- SVG Avatar Component ---
-const InterviewerAvatar = ({ audioData }: { audioData: Uint8Array | null }) => {
-  const [mouthOpen, setMouthOpen] = useState(0); // 0 to 1
+const InterviewerAvatar = () => {
   const controls = useAnimation();
+  const mouthControls = useAnimation();
 
+  // Blinking animation
   useEffect(() => {
-    // Simple blinking animation
     controls.start({
       scaleY: [1, 1, 0.1, 1, 1],
       transition: { duration: 0.5, times: [0, 0.45, 0.5, 0.55, 1], repeat: Infinity, repeatDelay: 5 }
     });
   }, [controls]);
-
+  
+  // Mouth animation - tied to speaking state, not direct audio data
   useEffect(() => {
-    if (audioData && audioData.length > 0) {
-      // Calculate average volume
-      const average = audioData.reduce((a, b) => a + b) / audioData.length;
-      // Normalize and scale the value for mouth opening
-      const normalized = Math.min((average - 128) / 32, 1);
-      setMouthOpen(normalized);
-    } else {
-      setMouthOpen(0);
-    }
-  }, [audioData]);
+    const handleSpeechStart = () => {
+        mouthControls.start({
+            d: [
+                "M 120 150 Q 150 150 180 150",
+                "M 120 150 Q 150 170 180 150",
+                "M 120 150 Q 150 155 180 150",
+                "M 120 150 Q 150 180 180 150",
+                "M 120 150 Q 150 150 180 150",
+            ],
+            transition: { duration: 0.8, repeat: Infinity, ease: "easeInOut" }
+        });
+    };
+    const handleSpeechEnd = () => {
+        mouthControls.start({
+            d: "M 120 150 Q 150 150 180 150",
+            transition: { duration: 0.2 }
+        });
+    };
 
-  const mouthPath = `M 120 150 Q 150 ${150 + mouthOpen * 40} 180 150`;
+    window.speechSynthesis.onvoiceschanged = () => { // Ensure voices are loaded
+        const utterances = window.speechSynthesis.getUtterances();
+        utterances.forEach(u => {
+            u.addEventListener('start', handleSpeechStart);
+            u.addEventListener('end', handleSpeechEnd);
+        });
+    };
+    
+    // Custom events for more direct control
+    document.addEventListener('speech-start', handleSpeechStart);
+    document.addEventListener('speech-end', handleSpeechEnd);
+
+
+    return () => {
+        document.removeEventListener('speech-start', handleSpeechStart);
+        document.removeEventListener('speech-end', handleSpeechEnd);
+    }
+  }, [mouthControls]);
+
 
   return (
     <div className="relative w-64 h-64">
@@ -61,11 +88,11 @@ const InterviewerAvatar = ({ audioData }: { audioData: Uint8Array | null }) => {
         </g>
         {/* Mouth */}
         <motion.path
-          d={mouthPath}
+          initial={{ d: "M 120 150 Q 150 150 180 150" }}
+          animate={mouthControls}
           stroke="#F2F9FF"
           strokeWidth="5"
           fill="transparent"
-          transition={{ type: 'spring', stiffness: 500, damping: 30 }}
         />
       </svg>
     </div>
@@ -78,7 +105,7 @@ export function AiInterviewerPage() {
     const { toast } = useToast();
     
     // Component State
-    const [interviewState, setInterviewState] = useState<'idle' | 'in_progress' | 'finished'>('idle');
+    const [interviewState, setInterviewState] = useState<'idle' | 'starting' | 'in_progress' | 'finished'>('idle');
     const [transcript, setTranscript] = useState<TranscriptItem[]>([]);
     
     // Media & Permissions
@@ -86,15 +113,10 @@ export function AiInterviewerPage() {
     const [hasPermission, setHasPermission] = useState(false);
     const [isMuted, setIsMuted] = useState(false);
     const [isCameraOff, setIsCameraOff] = useState(false);
+    const [isAwaitingAI, setIsAwaitingAI] = useState(false);
     
-    // Refs for media elements and APIs
+    // Refs for media elements
     const userVideoRef = useRef<HTMLVideoElement>(null);
-    const audioContextRef = useRef<AudioContext | null>(null);
-    const analyserRef = useRef<AnalyserNode | null>(null);
-    const audioDataRef = useRef<Uint8Array | null>(null);
-    const animationFrameRef = useRef<number | null>(null);
-    
-    const [speakingAudioData, setSpeakingAudioData] = useState<Uint8Array | null>(null);
     
     const { transcript: speechTranscript, listening, resetTranscript, browserSupportsSpeechRecognition } = useSpeechRecognition();
     
@@ -110,6 +132,7 @@ export function AiInterviewerPage() {
     // --- Core Functions ---
     
     const startInterview = async () => {
+        setInterviewState('starting');
         // 1. Get Camera/Mic Permissions
         try {
             const mediaStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: true });
@@ -117,70 +140,60 @@ export function AiInterviewerPage() {
             setHasPermission(true);
         } catch (error) {
             toast({ variant: 'destructive', title: 'Permission Denied', description: 'Camera and microphone access is required.' });
+            setInterviewState('idle');
             return;
         }
         
         // 2. Set state and get first question
         setInterviewState('in_progress');
+        setIsAwaitingAI(true);
         const response = await getAiInterviewerResponse({
             interviewType: 'mixed', // Example
             jobDescription: 'Software Engineer',
-            avatarType: 'Robot'
         });
+        setIsAwaitingAI(false);
 
         if (response.success && response.data) {
+            setTranscript([{ speaker: 'ai', text: response.data.firstQuestion, timestamp: new Date().toISOString() }]);
             speak(response.data.firstQuestion, () => {
                  // After the first question is spoken, start listening for the user's answer
                  if (!listening) {
                      SpeechRecognition.startListening({ continuous: true });
                  }
             });
-            setTranscript([{ speaker: 'ai', text: response.data.firstQuestion, timestamp: new Date().toISOString() }]);
         } else {
-            toast({ variant: 'destructive', title: 'Could not start interview.' });
+            toast({ variant: 'destructive', title: 'Could not start interview.', description: response.error });
             setInterviewState('idle');
         }
     };
 
     const speak = (text: string, onEndCallback?: () => void) => {
+        // Stop listening while AI is speaking
+        SpeechRecognition.stopListening();
+        
         const utterance = new SpeechSynthesisUtterance(text);
         
-        // Ensure audio context is initialized (must be done after user interaction)
-        if (!audioContextRef.current) {
-            audioContextRef.current = new window.AudioContext();
-            analyserRef.current = audioContextRef.current.createAnalyser();
-            analyserRef.current.fftSize = 256;
-            audioDataRef.current = new Uint8Array(analyserRef.current.frequencyBinCount);
-        }
-        const audioCtx = audioContextRef.current;
-        const analyser = analyserRef.current!;
-
-        // When TTS starts speaking
         utterance.onstart = () => {
-            // Disconnect any previous source to avoid interference
-            // This is a simple approach. A more robust solution might use a single, reusable source.
-            const source = audioCtx.createMediaStreamSource(new MediaStream()); // Dummy stream
-            
-            // This is a conceptual workaround. Direct `SpeechSynthesis` output is not routable
-            // into the Web Audio API in all browsers. A proper solution requires server-side TTS
-            // or a library that provides an audio stream.
-            // For now, we'll simulate the analysis loop.
-            const loop = () => {
-                analyser.getByteFrequencyData(audioDataRef.current!);
-                setSpeakingAudioData(new Uint8Array(audioDataRef.current!)); // Trigger re-render
-                animationFrameRef.current = requestAnimationFrame(loop);
-            };
-            loop();
+            document.dispatchEvent(new Event('speech-start'));
         };
 
-        // When TTS stops speaking
         utterance.onend = () => {
-            if (animationFrameRef.current) {
-                cancelAnimationFrame(animationFrameRef.current);
-            }
-            setSpeakingAudioData(null); // Stop animation
+            document.dispatchEvent(new Event('speech-end'));
             if (onEndCallback) {
-                onEndCallback(); // e.g., start listening for user response
+                onEndCallback();
+            }
+        };
+        
+        utterance.onerror = (e) => {
+            document.dispatchEvent(new Event('speech-end'));
+             toast({
+                variant: 'destructive',
+                title: 'Text-to-Speech Error',
+                description: `Could not play audio: ${e.error}`
+            });
+            // Still run callback to potentially restart listening
+            if (onEndCallback) {
+                onEndCallback();
             }
         };
 
@@ -188,29 +201,38 @@ export function AiInterviewerPage() {
     };
 
     const handleUserResponse = async () => {
-        if (!speechTranscript.trim()) return;
-        SpeechRecognition.stopListening();
+        if (!speechTranscript.trim() || isAwaitingAI) return;
 
-        const newTranscript: TranscriptItem[] = [...transcript, { speaker: 'user', text: speechTranscript, timestamp: new Date().toISOString() }];
-        setTranscript(newTranscript);
+        SpeechRecognition.stopListening();
+        setIsAwaitingAI(true);
+
+        const userResponseText = speechTranscript.trim();
         resetTranscript();
+
+        const newTranscript: TranscriptItem[] = [...transcript, { speaker: 'user', text: userResponseText, timestamp: new Date().toISOString() }];
+        setTranscript(newTranscript);
 
         const response = await getAiInterviewerFollowup({
             transcript: newTranscript,
             jobDescription: 'Software Engineer',
-            avatarType: 'Robot'
         });
+        
+        setIsAwaitingAI(false);
 
         if (response.success && response.data) {
              setTranscript(prev => [...prev, { speaker: 'ai', text: response.data.followUp, timestamp: new Date().toISOString() }]);
-             speak(response.data.followUp, () => {
-                 if (!listening) SpeechRecognition.startListening({ continuous: true });
-             });
+             
              if (response.data.isEndOfInterview) {
-                 setInterviewState('finished');
+                 speak(response.data.followUp, endInterview);
+             } else {
+                 speak(response.data.followUp, () => {
+                    if (!listening) SpeechRecognition.startListening({ continuous: true });
+                 });
              }
         } else {
-            toast({ variant: 'destructive', title: 'Error getting response' });
+            toast({ variant: 'destructive', title: 'Error getting response', description: response.error });
+            // If AI fails, start listening again
+            if (!listening) SpeechRecognition.startListening({ continuous: true });
         }
     };
     
@@ -229,19 +251,21 @@ export function AiInterviewerPage() {
         }
     };
      const endInterview = () => {
+        speechSynthesis.cancel();
+        SpeechRecognition.stopListening();
         if (stream) {
             stream.getTracks().forEach(track => track.stop());
         }
         setStream(null);
+        setHasPermission(false);
         setInterviewState('finished');
-        setTranscript([]);
     };
     
     // --- Render Logic ---
     
     if (!browserSupportsSpeechRecognition) {
         return (
-             <div className="p-8"><Alert variant="destructive"><AlertTitle>Browser Not Supported</AlertTitle><AlertDescription>This feature requires Google Chrome for speech recognition.</AlertDescription></Alert></div>
+             <div className="p-8"><Alert variant="destructive"><AlertTitle>Browser Not Supported</AlertTitle><AlertDescription>This feature requires a browser that supports the Web Speech API, like Google Chrome.</AlertDescription></Alert></div>
         );
     }
     
@@ -264,13 +288,23 @@ export function AiInterviewerPage() {
     if (interviewState === 'finished') {
         return (
             <div className="p-4 md:p-8 flex flex-col items-center justify-center space-y-8 min-h-[calc(100vh-10rem)]">
-                <Card className="glass-card w-full max-w-lg text-center">
+                <Card className="glass-card w-full max-w-2xl text-center">
                     <CardHeader>
                         <CardTitle>Interview Complete!</CardTitle>
-                        <CardDescription>Great job! You've completed the mock interview.</CardDescription>
+                        <CardDescription>Great job! You've completed the mock interview. Here is your transcript.</CardDescription>
                     </CardHeader>
+                    <CardContent className="space-y-4 max-h-96 overflow-y-auto text-left p-4 bg-background/50 rounded-lg">
+                        {transcript.map((item, index) => (
+                             <div key={index} className={`flex gap-2 ${item.speaker === 'user' ? 'justify-end' : 'justify-start'}`}>
+                                <div className={`max-w-[80%] p-3 rounded-xl ${item.speaker === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>
+                                    <p className="font-bold capitalize">{item.speaker}</p>
+                                    <p>{item.text}</p>
+                                </div>
+                            </div>
+                        ))}
+                    </CardContent>
                     <CardContent>
-                        <Button size="lg" variant="outline" onClick={() => setInterviewState('idle')}>Start a New Interview</Button>
+                        <Button size="lg" variant="outline" onClick={() => { setInterviewState('idle'); setTranscript([]); }}>Start a New Interview</Button>
                     </CardContent>
                 </Card>
             </div>
@@ -280,24 +314,36 @@ export function AiInterviewerPage() {
     return (
         <div className="flex h-[calc(100vh-6rem)] w-full text-white p-4 gap-4">
             {/* Left side: AI Interviewer */}
-            <div className="flex-1 flex flex-col items-center justify-center bg-black rounded-2xl relative">
-                <InterviewerAvatar audioData={speakingAudioData} />
-                <div className="absolute top-4 left-4">
+            <div className="flex-1 flex flex-col items-center justify-center bg-black rounded-2xl relative overflow-hidden">
+                <InterviewerAvatar />
+                <div className="absolute top-4 left-4 p-2 bg-black/50 rounded-lg max-w-sm">
                     <p className="font-bold text-lg">AI Interviewer</p>
-                    <p className="text-sm text-muted-foreground">{transcript.findLast(t => t.speaker === 'ai')?.text}</p>
+                    <p className="text-sm text-muted-foreground break-words">{transcript.findLast(t => t.speaker === 'ai')?.text}</p>
                 </div>
+                 {isAwaitingAI && (
+                    <div className="absolute bottom-10 flex items-center gap-2 text-sm">
+                        <Loader2 className="w-4 h-4 animate-spin"/> Thinking...
+                    </div>
+                 )}
             </div>
             
             {/* Right side: User Video & Controls */}
             <div className="w-1/3 flex flex-col space-y-4">
                 <div className="flex-1 bg-black rounded-2xl overflow-hidden relative">
-                    <video ref={userVideoRef} autoPlay muted className={`w-full h-full object-cover transform -scale-x-100 ${isCameraOff ? 'hidden' : 'block'}`}></video>
+                    {!hasPermission ? (
+                        <div className="w-full h-full flex flex-col items-center justify-center">
+                           <Loader2 className="w-10 h-10 animate-spin text-primary mb-4" />
+                           <p>Starting camera...</p>
+                        </div>
+                    ) : (
+                        <video ref={userVideoRef} autoPlay muted className={`w-full h-full object-cover transform -scale-x-100 ${isCameraOff ? 'hidden' : 'block'}`}></video>
+                    )}
                     {isCameraOff && <div className="w-full h-full flex items-center justify-center"><VideoOff className="w-16 h-16 text-muted-foreground"/></div>}
-                     <div className="absolute top-4 right-4">
-                        <p className="font-bold text-lg">{user?.displayName || "You"}</p>
-                        <p className="text-sm text-muted-foreground">{listening ? 'Listening...' : 'Thinking...'}</p>
+                     <div className="absolute top-4 right-4 p-2 bg-black/50 rounded-lg">
+                        <p className="font-bold text-lg text-right">{user?.displayName || "You"}</p>
+                        <p className={`text-sm text-right ${listening ? 'text-green-400' : 'text-muted-foreground'}`}>{listening ? 'Listening...' : 'Not Listening'}</p>
                     </div>
-                    {listening && speechTranscript && <p className="absolute bottom-4 left-4 bg-black/50 p-2 rounded-lg text-sm">{speechTranscript}</p>}
+                    {listening && speechTranscript && <p className="absolute bottom-4 left-4 bg-black/50 p-2 rounded-lg text-sm max-w-[90%]">{speechTranscript}</p>}
                 </div>
                 
                 <div className="bg-card/50 rounded-2xl p-4 flex justify-center items-center gap-4">
@@ -307,8 +353,8 @@ export function AiInterviewerPage() {
                     <Button variant={isCameraOff ? 'destructive' : 'secondary'} size="icon" className="w-14 h-14 rounded-full" onClick={toggleCamera}>
                         {isCameraOff ? <VideoOff/> : <Video/>}
                     </Button>
-                     <Button variant="secondary" size="icon" className="w-14 h-14 rounded-full" onClick={handleUserResponse} disabled={!speechTranscript || listening}>
-                        <Send />
+                     <Button variant="secondary" size="icon" className="w-14 h-14 rounded-full" onClick={handleUserResponse} disabled={!speechTranscript || listening || isAwaitingAI}>
+                        { isAwaitingAI ? <Loader2 className="animate-spin" /> : <Send /> }
                     </Button>
                     <Button variant='destructive' size="icon" className="w-14 h-14 rounded-full" onClick={endInterview}>
                         <Phone/>
@@ -318,3 +364,5 @@ export function AiInterviewerPage() {
         </div>
     );
 }
+
+    

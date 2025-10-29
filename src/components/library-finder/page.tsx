@@ -56,7 +56,12 @@ export function LibraryFinderPage() {
         setCenter(newCenter);
         map?.panTo(newCenter);
 
-        const placesService = new google.maps.places.PlacesService(map!);
+        if (!map) {
+            setLoading(false);
+            return;
+        }
+
+        const placesService = new google.maps.places.PlacesService(map);
         const request: google.maps.places.PlaceSearchRequest = {
           location: newCenter,
           radius: 5000, // 5km radius
@@ -107,7 +112,50 @@ export function LibraryFinderPage() {
                       "elementType": "labels.text.fill",
                       "stylers": [ { "color": "#ffffff" } ]
                   },
-                  // Other styles to make it dark themed
+                  {
+                    "featureType": "all",
+                    "elementType": "labels.text.stroke",
+                    "stylers": [
+                      { "visibility": "off" }
+                    ]
+                  },
+                  {
+                      "featureType": "administrative",
+                      "elementType": "geometry.fill",
+                      "stylers": [ { "color": "#212c3b" } ]
+                  },
+                  {
+                      "featureType": "administrative",
+                      "elementType": "geometry.stroke",
+                      "stylers": [ { "color": "#3a4b64" } ]
+                  },
+                  {
+                      "featureType": "landscape",
+                      "elementType": "geometry",
+                      "stylers": [ { "color": "#212c3b" } ]
+                  },
+                  {
+                      "featureType": "poi",
+                      "elementType": "geometry",
+                      "stylers": [ { "color": "#2f4058" } ]
+                  },
+                   {
+                      "featureType": "road",
+                      "elementType": "geometry",
+                      "stylers": [ { "color": "#3a4b64" } ]
+                  },
+                  {
+                    "featureType": "transit",
+                    "elementType": "geometry",
+                    "stylers": [
+                      { "color": "#2f4058" }
+                    ]
+                  },
+                  {
+                      "featureType": "water",
+                      "elementType": "geometry",
+                      "stylers": [ { "color": "#17212e" } ]
+                  }
               ]
           }}
         >
@@ -128,7 +176,7 @@ export function LibraryFinderPage() {
           ))}
         </GoogleMap>
       ) : <Loader2 className="w-8 h-8 animate-spin text-primary" />
-  ), [isLoaded, center, onLoad, onUnmount, libraries, selectedLibrary]);
+  ), [isLoaded, center, onLoad, onUnmount, libraries, selectedLibrary, map]);
 
   if (loadError) {
     return (

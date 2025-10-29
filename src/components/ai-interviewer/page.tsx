@@ -26,7 +26,7 @@ const InterviewerAvatar = () => {
     });
   }, [controls]);
   
-  // Mouth animation - tied to speaking state, not direct audio data
+  // Mouth animation - listens for custom events
   useEffect(() => {
     const handleSpeechStart = () => {
         mouthControls.start({
@@ -46,19 +46,10 @@ const InterviewerAvatar = () => {
             transition: { duration: 0.2 }
         });
     };
-
-    window.speechSynthesis.onvoiceschanged = () => { // Ensure voices are loaded
-        const utterances = window.speechSynthesis.getUtterances();
-        utterances.forEach(u => {
-            u.addEventListener('start', handleSpeechStart);
-            u.addEventListener('end', handleSpeechEnd);
-        });
-    };
     
-    // Custom events for more direct control
+    // Listen for the custom events dispatched from the speak function
     document.addEventListener('speech-start', handleSpeechStart);
     document.addEventListener('speech-end', handleSpeechEnd);
-
 
     return () => {
         document.removeEventListener('speech-start', handleSpeechStart);
@@ -169,7 +160,9 @@ export function AiInterviewerPage() {
 
     const speak = (text: string, onEndCallback?: () => void) => {
         // Stop listening while AI is speaking
-        SpeechRecognition.stopListening();
+        if (listening) {
+          SpeechRecognition.stopListening();
+        }
         
         const utterance = new SpeechSynthesisUtterance(text);
         
@@ -197,7 +190,7 @@ export function AiInterviewerPage() {
             }
         };
 
-        speechSynthesis.speak(utterance);
+        window.speechSynthesis.speak(utterance);
     };
 
     const handleUserResponse = async () => {

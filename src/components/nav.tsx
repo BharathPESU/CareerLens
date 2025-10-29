@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -15,6 +16,7 @@ import {
   Bot,
   Hammer,
   ChevronUp,
+  LibrarySquare,
 } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -38,6 +40,7 @@ const toolNavItems = [
   { href: '/interview-prep', icon: <MessageSquare />, label: 'Interview' },
   { href: '/learning-helper', icon: <Sparkles />, label: 'AI Helper' },
   { href: '/ai-interviewer', icon: <Bot />, label: 'AI Interviewer' },
+  { href: '/library-finder', icon: <LibrarySquare />, label: 'Libraries' },
 ];
 
 const allNavItems = [...mainNavItems, ...toolNavItems];
@@ -66,7 +69,7 @@ export function Nav({ handleLogout, isLoggingOut, user }: NavProps) {
         >
           <div ref={ref} className="p-4 space-y-2">
              <h3 className="font-semibold text-center text-sm text-muted-foreground mb-2">Career Tools</h3>
-             <div className="grid grid-cols-3 gap-2">
+             <div className="grid grid-cols-4 gap-2">
                 {toolNavItems.map((item) => (
                     <Link href={item.href} key={item.label} onClick={() => setIsToolsOpen(false)}>
                         <div className={cn(

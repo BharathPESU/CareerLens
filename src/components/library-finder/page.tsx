@@ -1,13 +1,148 @@
 
 'use client';
 
+import React, { useState, useCallback, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { LibrarySquare, Map, Search, Wifi } from 'lucide-react';
+import { LibrarySquare, Map, Search, Wifi, Loader2, LocateFixed, Star } from 'lucide-react';
+import { GoogleMap, useJsApiLoader, MarkerF } from '@react-google-maps/api';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { useToast } from '@/hooks/use-toast';
+import { Badge } from '../ui/badge';
+
+const containerStyle = {
+  width: '100%',
+  height: '400px',
+  borderRadius: '1rem',
+};
+
+const mapLibraries = ['places'];
 
 export function LibraryFinderPage() {
+  const { toast } = useToast();
+  const { isLoaded, loadError } = useJsApiLoader({
+    id: 'google-map-script',
+    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "",
+    libraries: mapLibraries as any,
+  });
+
+  const [map, setMap] = useState<google.maps.Map | null>(null);
+  const [center, setCenter] = useState({ lat: 40.7128, lng: -74.0060 }); // Default to NYC
+  const [libraries, setLibraries] = useState<google.maps.places.PlaceResult[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [selectedLibrary, setSelectedLibrary] = useState<google.maps.places.PlaceResult | null>(null);
+
+  const onLoad = useCallback(function callback(mapInstance: google.maps.Map) {
+    setMap(mapInstance);
+  }, []);
+
+  const onUnmount = useCallback(function callback() {
+    setMap(null);
+  }, []);
+
+  const findLibrariesNearMe = () => {
+    if (!navigator.geolocation) {
+      toast({ variant: 'destructive', title: 'Geolocation is not supported by your browser' });
+      return;
+    }
+    setLoading(true);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const newCenter = {
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+        };
+        setCenter(newCenter);
+        map?.panTo(newCenter);
+
+        const placesService = new google.maps.places.PlacesService(map!);
+        const request: google.maps.places.PlaceSearchRequest = {
+          location: newCenter,
+          radius: 5000, // 5km radius
+          type: 'library',
+        };
+
+        placesService.nearbySearch(request, (results, status) => {
+          if (status === google.maps.places.PlacesServiceStatus.OK && results) {
+            setLibraries(results);
+          } else {
+            toast({ variant: 'destructive', title: 'Could not find libraries' });
+          }
+          setLoading(false);
+        });
+      },
+      () => {
+        toast({ variant: 'destructive', title: 'Unable to retrieve your location' });
+        setLoading(false);
+      }
+    );
+  };
+
+  const handleLibraryClick = (library: google.maps.places.PlaceResult) => {
+      if (library.geometry?.location) {
+          const newCenter = { lat: library.geometry.location.lat(), lng: library.geometry.location.lng() };
+          setCenter(newCenter);
+          map?.panTo(newCenter);
+          map?.setZoom(15);
+          setSelectedLibrary(library);
+      }
+  }
+
+  const memoizedMap = useMemo(() => (
+    isLoaded ? (
+        <GoogleMap
+          mapContainerStyle={containerStyle}
+          center={center}
+          zoom={12}
+          onLoad={onLoad}
+          onUnmount={onUnmount}
+          options={{
+              streetViewControl: false,
+              mapTypeControl: false,
+              fullscreenControl: false,
+              styles: [
+                  {
+                      "featureType": "all",
+                      "elementType": "labels.text.fill",
+                      "stylers": [ { "color": "#ffffff" } ]
+                  },
+                  // Other styles to make it dark themed
+              ]
+          }}
+        >
+          {libraries.map(lib => lib.geometry?.location && (
+              <MarkerF 
+                key={lib.place_id} 
+                position={lib.geometry.location} 
+                onClick={() => handleLibraryClick(lib)}
+                icon={{
+                    path: google.maps.SymbolPath.CIRCLE,
+                    fillColor: selectedLibrary?.place_id === lib.place_id ? '#FACC15' : '#60A5FA',
+                    fillOpacity: 1,
+                    strokeColor: '#FFF',
+                    strokeWeight: 2,
+                    scale: selectedLibrary?.place_id === lib.place_id ? 10 : 7,
+                }}
+              />
+          ))}
+        </GoogleMap>
+      ) : <Loader2 className="w-8 h-8 animate-spin text-primary" />
+  ), [isLoaded, center, onLoad, onUnmount, libraries, selectedLibrary]);
+
+  if (loadError) {
+    return (
+      <div className="p-8">
+        <Alert variant="destructive">
+          <Map className="h-4 w-4" />
+          <AlertTitle>Map Error</AlertTitle>
+          <AlertDescription>
+            Could not load Google Maps. Please check your API key and network connection.
+          </AlertDescription>
+        </Alert>
+      </div>
+    )
+  }
 
   return (
     <div className="p-4 md:p-8 space-y-8">
@@ -22,55 +157,41 @@ export function LibraryFinderPage() {
        <Card className="glass-card">
         <CardHeader>
           <CardTitle>Find a Library</CardTitle>
-          <CardDescription>Enter your location to find libraries in your area.</CardDescription>
+          <CardDescription>Click the button to use your current location to find libraries in your area.</CardDescription>
         </CardHeader>
-        <CardContent className="flex flex-col sm:flex-row items-center gap-4">
-          <div className="relative flex-grow w-full">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground w-5 h-5"/>
-            <input 
-              placeholder="Enter your address, city, or zip code..." 
-              className="w-full bg-secondary border-border rounded-lg p-3 pl-10 text-base" 
-            />
-          </div>
-          <Button size="lg" className="w-full sm:w-auto">
-            <Search className="mr-2" />
-            Find Libraries
+        <CardContent>
+          <Button size="lg" className="w-full sm:w-auto" onClick={findLibrariesNearMe} disabled={loading || !isLoaded}>
+            {loading ? <Loader2 className="mr-2 animate-spin" /> : <LocateFixed className="mr-2" />}
+            Find Libraries Near Me
           </Button>
         </CardContent>
       </Card>
       
-      <Alert>
-        <Map className="h-4 w-4" />
-        <AlertTitle>Feature in Development</AlertTitle>
-        <AlertDescription>
-          The interactive map and real-time library data via Google Maps API are coming soon!
-        </AlertDescription>
-      </Alert>
-
-      {/* Placeholder for map */}
       <Card className="glass-card">
         <CardContent className="p-6">
           <div className="aspect-video bg-muted/50 rounded-lg flex items-center justify-center">
-            <p className="text-muted-foreground">Map will be displayed here</p>
+            {memoizedMap}
           </div>
         </CardContent>
       </Card>
       
-      {/* Placeholder for library list */}
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {[1, 2, 3].map((item) => (
-          <Card key={item} className="glass-card hover:-translate-y-1 transition-transform">
+        {libraries.map((lib) => (
+          <Card key={lib.place_id} className={`glass-card hover:-translate-y-1 transition-transform ${selectedLibrary?.place_id === lib.place_id ? 'border-primary shadow-lg shadow-primary/20' : ''}`}>
             <CardHeader>
-              <CardTitle>City Central Library</CardTitle>
-              <CardDescription>1.2 miles away</CardDescription>
+              <CardTitle>{lib.name}</CardTitle>
+              <CardDescription>{lib.vicinity}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
-              <p className="text-sm text-muted-foreground">123 Main St, Anytown, USA</p>
-              <div className="flex items-center gap-2 text-sm text-green-400">
-                <Wifi className="w-4 h-4" />
-                <span>Free Wi-Fi Available</span>
+              <div className="flex items-center gap-2">
+                <Star className={`w-5 h-5 ${lib.rating && lib.rating > 0 ? 'text-amber-400' : 'text-muted-foreground'}`}/>
+                <span className="text-sm font-medium">{lib.rating || 'No rating'}</span>
+                <span className="text-xs text-muted-foreground">({lib.user_ratings_total || 0} reviews)</span>
               </div>
-              <Button variant="outline" className="w-full">Get Directions</Button>
+              <Badge variant={lib.opening_hours?.open_now ? 'default' : 'destructive'} className={lib.opening_hours?.open_now ? 'bg-green-500/20 text-green-300 border-green-500/50' : ''}>
+                {lib.opening_hours?.open_now ? 'Open Now' : 'Closed'}
+              </Badge>
+              <Button variant="outline" className="w-full" onClick={() => handleLibraryClick(lib)}>Show on Map</Button>
             </CardContent>
           </Card>
         ))}

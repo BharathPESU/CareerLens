@@ -1,3 +1,4 @@
+
 'use client';
 import 'regenerator-runtime/runtime';
 import React, { useState, useEffect, useRef } from 'react';
@@ -97,6 +98,15 @@ export function AiInterviewerPage() {
     
     const { transcript: speechTranscript, listening, resetTranscript, browserSupportsSpeechRecognition } = useSpeechRecognition();
     
+    // --- Effects ---
+
+    useEffect(() => {
+        // This effect ensures the video stream is correctly attached to the video element.
+        if (stream && userVideoRef.current) {
+            userVideoRef.current.srcObject = stream;
+        }
+    }, [stream]);
+    
     // --- Core Functions ---
     
     const startInterview = async () => {
@@ -105,9 +115,6 @@ export function AiInterviewerPage() {
             const mediaStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: true });
             setStream(mediaStream);
             setHasPermission(true);
-            if (userVideoRef.current) {
-                userVideoRef.current.srcObject = mediaStream;
-            }
         } catch (error) {
             toast({ variant: 'destructive', title: 'Permission Denied', description: 'Camera and microphone access is required.' });
             return;

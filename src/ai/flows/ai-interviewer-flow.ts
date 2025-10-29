@@ -13,6 +13,7 @@ import {
   type AiInterviewerInput,
   type AiInterviewerFlowOutput,
 } from '@/ai/schemas/ai-interviewer-flow';
+import { generate } from 'genkit/generate';
 import { z } from 'zod';
 
 export async function aiInterviewerFollowup(input: Omit<AiInterviewerInput, 'userProfile'>): Promise<AiInterviewerFlowOutput> {
@@ -37,7 +38,7 @@ export const aiInterviewerFlow = ai.defineFlow(
   async (input) => {
     const { jobDescription, transcript } = input;
 
-    const llm = ai.getModel('googleai/gemini-2.5-flash-lite');
+    const model = ai.getGenerator('googleai/gemini-2.5-flash-lite');
 
     const history = transcript.map(item => ({
       role: item.speaker === 'user' ? 'user' : 'model',
@@ -49,7 +50,8 @@ export const aiInterviewerFlow = ai.defineFlow(
       Conversation History is attached. Based on the last user response, ask the next question or conclude the interview.
     `;
 
-    const llmResponse = await llm.generate({
+    const llmResponse = await generate({
+      model: model,
       system: systemPrompt,
       history,
       prompt: finalPrompt,
@@ -61,7 +63,11 @@ export const aiInterviewerFlow = ai.defineFlow(
       }
     });
 
-    const output = llmResponse.output!;
+    const output = llmResponse.output();
+
+    if (!output) {
+      throw new Error('AI failed to generate a response.');
+    }
 
     // Return only text and end-of-interview flag. Audio is handled client-side.
     return {

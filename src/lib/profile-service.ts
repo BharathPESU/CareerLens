@@ -1,7 +1,7 @@
 
 'use client';
 
-import { doc, getDoc, setDoc, serverTimestamp, type Firestore } from "firebase/firestore";
+import { doc, getDoc, setDoc, serverTimestamp, type Firestore, enableNetwork } from "firebase/firestore";
 import type { UserProfile } from './types';
 
 
@@ -21,6 +21,9 @@ export async function fetchProfile(db: Firestore, userId: string): Promise<UserP
     return undefined;
   }
   try {
+    // Explicitly enable the network to help mitigate "client is offline" errors in race conditions.
+    await enableNetwork(db);
+    
     const docRef = doc(db, 'users', userId);
     const docSnap = await getDoc(docRef);
 
@@ -35,6 +38,9 @@ export async function fetchProfile(db: Firestore, userId: string): Promise<UserP
   } catch (err: any) {
     console.error('Error fetching profile from Firestore:', err);
     // Propagate the error so the UI can handle it (e.g., show a toast).
+    if (err.message.includes('offline')) {
+       throw new Error('Could not connect to the database. Please check your internet connection.');
+    }
     throw new Error('Failed to fetch user profile.');
   }
 }

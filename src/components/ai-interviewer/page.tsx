@@ -248,7 +248,10 @@ export function AiInterviewerPage() {
                  speak(response.data.followUp, endInterview);
              } else {
                  speak(response.data.followUp, () => {
-                    if (!listening) SpeechRecognition.startListening({ continuous: true });
+                    // This is the key fix: ensure listening starts again
+                    if (!listening && browserSupportsSpeechRecognition) {
+                        SpeechRecognition.startListening({ continuous: true });
+                    }
                  });
              }
         } else {
@@ -383,3 +386,5 @@ export function AiInterviewerPage() {
         </div>
     );
 }
+
+    

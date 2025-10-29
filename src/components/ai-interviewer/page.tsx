@@ -2,7 +2,7 @@
 import 'regenerator-runtime/runtime';
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, useAnimation } from 'framer-motion';
-import { Mic, MicOff, Video, VideoOff, Phone, Bot, User, Loader2 } from 'lucide-react';
+import { Mic, MicOff, Video, VideoOff, Phone, Bot, User, Loader2, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';

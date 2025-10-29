@@ -17,7 +17,7 @@ const containerStyle = {
   borderRadius: '1rem',
 };
 
-const mapLibraries: ('places' | 'drawing' | 'geometry' | 'localContext' | 'visualization')[] = ['places'];
+const mapLibraries: ('places')[] = ['places'];
 
 
 export function LibraryFinderPage() {
@@ -363,5 +363,3 @@ export function LibraryFinderPage() {
 }
 
 export default LibraryFinderPage;
-
-    

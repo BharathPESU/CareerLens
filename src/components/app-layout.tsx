@@ -19,7 +19,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     }
   }, [authLoading, user, router, isAuthPage, pathname]);
 
-  if (authLoading) {
+  if (authLoading || (!user && !isAuthPage)) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -31,25 +31,21 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     return <div className="flex min-h-screen items-center justify-center">{children}</div>;
   }
   
-  if (!user) {
-     return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
+  if (user) {
+    return (
+      <>
+        <div className="hidden lg:block">
+          <Nav handleLogout={() => {}} isLoggingOut={false} user={user} />
+        </div>
+        <div className="block lg:hidden">
+          <NavMobile handleLogout={() => {}} isLoggingOut={false} user={user} />
+        </div>
+        <main className="lg:pl-64 lg:pt-20 pb-24 lg:pb-0">
+            {children}
+        </main>
+      </>
     );
   }
 
-  return (
-    <>
-      <div className="hidden lg:block">
-        <Nav handleLogout={() => {}} isLoggingOut={false} user={user} />
-      </div>
-      <div className="block lg:hidden">
-        <NavMobile handleLogout={() => {}} isLoggingOut={false} user={user} />
-      </div>
-      <main className="lg:pl-64 lg:pt-20 pb-24 lg:pb-0">
-          {children}
-      </main>
-    </>
-  );
+  return null;
 }

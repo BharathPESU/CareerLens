@@ -4,7 +4,7 @@
 import React, { createContext, useEffect, useState, useContext } from 'react';
 import { initializeApp, getApps, getApp, type FirebaseApp } from 'firebase/app';
 import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, GoogleAuthProvider, signInWithPopup, type Auth, type User } from 'firebase/auth';
-import { getFirestore, enableIndexedDbPersistence, type Firestore } from 'firebase/firestore';
+import { getFirestore, enableIndexedDbPersistence, type Firestore } from 'firestore';
 import { getAnalytics, isSupported } from "firebase/analytics";
 
 const firebaseConfig = {
@@ -59,6 +59,7 @@ export function FirebaseProvider({ children }: { children: React.ReactNode }) {
     const _auth = getAuth(_app);
     const _db = getFirestore(_app);
 
+    // It's safe to call this multiple times.
     enableIndexedDbPersistence(_db).catch((err) => {
       if (err.code == 'failed-precondition') {
         console.warn('Firestore persistence failed: Multiple tabs open.');
@@ -125,6 +126,7 @@ export function FirebaseProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
+// Custom hook to use the Firebase context
 export const useFirebaseContext = () => {
     const context = useContext(FirebaseContext);
     if (context === undefined) {
@@ -133,6 +135,7 @@ export const useFirebaseContext = () => {
     return context;
 };
 
+// Custom hook specifically for authentication
 export const useAuth = () => {
     const context = useContext(FirebaseContext);
     if (context === undefined) {
@@ -142,6 +145,7 @@ export const useAuth = () => {
     return { user, loading, signUp, signIn, googleSignIn, logOut };
 };
 
+// Custom hook to get Firebase services
 export const useFirebase = () => {
     const context = useContext(FirebaseContext);
     if (context === undefined) {

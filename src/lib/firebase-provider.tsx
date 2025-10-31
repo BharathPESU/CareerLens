@@ -5,14 +5,16 @@ import React, { createContext, useEffect, useState, useContext } from 'react';
 import { initializeApp, getApps, getApp, type FirebaseApp } from 'firebase/app';
 import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, GoogleAuthProvider, signInWithPopup, type Auth, type User } from 'firebase/auth';
 import { getFirestore, enableIndexedDbPersistence, type Firestore } from 'firebase/firestore';
+import { getAnalytics, isSupported } from "firebase/analytics";
 
 const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+  apiKey: "AIzaSyAZRQLIieXFytt1ztD8uE6TeaqeT4ggBAs",
+  authDomain: "careerlens-1.firebaseapp.com",
+  projectId: "careerlens-1",
+  storageBucket: "careerlens-1.appspot.com",
+  messagingSenderId: "202306950137",
+  appId: "1:202306950137:web:ed4e91e619dd4cc7dde328",
+  measurementId: "G-WEF48JHJF9"
 };
 
 interface FirebaseContextType {
@@ -44,20 +46,12 @@ export function FirebaseProvider({ children }: { children: React.ReactNode }) {
   const [auth, setAuth] = useState<Auth | null>(null);
   const [db, setDb] = useState<Firestore | null>(null);
   const [user, setUser] = useState<User | null>(null);
-  const [firebaseLoading, setFirebaseLoading] = useState(true);
-  const [authLoading, setAuthLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let _app: FirebaseApp;
     if (!getApps().length) {
-      if (firebaseConfig.projectId) {
         _app = initializeApp(firebaseConfig);
-      } else {
-        console.error("Firebase config is missing Project ID. App cannot be initialized.");
-        setFirebaseLoading(false);
-        setAuthLoading(false);
-        return;
-      }
     } else {
       _app = getApp();
     }
@@ -73,14 +67,19 @@ export function FirebaseProvider({ children }: { children: React.ReactNode }) {
       }
     });
 
+    isSupported().then(supported => {
+        if(supported) {
+            getAnalytics(_app);
+        }
+    })
+
     setApp(_app);
     setAuth(_auth);
     setDb(_db);
-    setFirebaseLoading(false); // Firebase services are initialized
 
     const unsubscribe = onAuthStateChanged(_auth, (currentUser) => {
       setUser(currentUser);
-      setAuthLoading(false); // Auth state is resolved
+      setLoading(false);
     });
 
     return () => unsubscribe();
@@ -112,7 +111,7 @@ export function FirebaseProvider({ children }: { children: React.ReactNode }) {
     auth,
     db,
     user,
-    loading: firebaseLoading || authLoading, // Combined loading state
+    loading,
     signUp,
     signIn,
     googleSignIn,
@@ -126,7 +125,6 @@ export function FirebaseProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
-// Renamed from useFirebase to useFirebaseContext to avoid confusion
 export const useFirebaseContext = () => {
     const context = useContext(FirebaseContext);
     if (context === undefined) {
@@ -135,7 +133,6 @@ export const useFirebaseContext = () => {
     return context;
 };
 
-// Kept this hook for backward compatibility in other components.
 export const useAuth = () => {
     const context = useContext(FirebaseContext);
     if (context === undefined) {
@@ -145,7 +142,6 @@ export const useAuth = () => {
     return { user, loading, signUp, signIn, googleSignIn, logOut };
 };
 
-// New hook to provide all firebase services including db.
 export const useFirebase = () => {
     const context = useContext(FirebaseContext);
     if (context === undefined) {

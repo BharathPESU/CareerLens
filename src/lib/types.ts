@@ -38,6 +38,161 @@ export const userProfileSchema = z.object({
 
 export type UserProfile = z.infer<typeof userProfileSchema>;
 
+// Enhanced User Profile with Gamification
+export interface Achievement {
+  id: string;
+  name: string;
+  icon: string;
+  unlocked: boolean;
+  unlockedAt?: string;
+  progress?: number;
+  description?: string;
+  category?: 'learning' | 'career' | 'skill' | 'project' | 'social';
+}
+
+export interface Project {
+  id: string;
+  title: string;
+  description: string;
+  difficulty: 'Beginner' | 'Intermediate' | 'Advanced';
+  status: 'not-started' | 'in-progress' | 'completed';
+  techStack: string[];
+  xpReward: number;
+  startedAt?: string;
+  completedAt?: string;
+  estimatedTime: string;
+  githubUrl?: string;
+  liveUrl?: string;
+}
+
+export interface DailyGoal {
+  id: string;
+  text: string;
+  completed: boolean;
+  completedAt?: string;
+  xpReward: number;
+  category: 'learning' | 'career' | 'skill' | 'project';
+}
+
+export interface WeeklyActivity {
+  day: string;
+  date: string;
+  hours: number;
+  productivity: number;
+  activities: string[];
+}
+
+export interface Certification {
+  id: string;
+  name: string;
+  issuer: string;
+  issueDate: string;
+  expiryDate?: string;
+  credentialId?: string;
+  credentialUrl?: string;
+}
+
+export interface Language {
+  name: string;
+  proficiency: 'Native' | 'Fluent' | 'Professional' | 'Limited';
+}
+
+export interface EnhancedUserProfile extends UserProfile {
+  // Basic Info
+  email?: string;
+  photoURL?: string;
+  location?: string;
+  title?: string;
+  summary?: string;
+  objective?: string;
+  website?: string;
+  twitter?: string;
+  
+  // Gamification
+  level: number;
+  currentXP: number;
+  totalXP: number;
+  nextLevelXP: number;
+  careerStage: 'Learner' | 'Explorer' | 'Developer' | 'Specialist' | 'Innovator' | 'Master';
+  streak: number;
+  lastActivityDate?: string;
+  
+  // Enhanced Experience
+  experienceDetails?: Array<{
+    role: string;
+    company: string;
+    location?: string;
+    startDate: string;
+    endDate?: string;
+    current: boolean;
+    description: string;
+    achievements: string[];
+    technologies?: string[];
+  }>;
+  
+  // Enhanced Education
+  educationDetails?: Array<{
+    degree: string;
+    field: string;
+    institution: string;
+    location?: string;
+    startDate: string;
+    endDate?: string;
+    gpa?: string;
+    honors?: string[];
+    coursework?: string[];
+  }>;
+  
+  // Projects
+  projects: Project[];
+  
+  // Certifications
+  certifications: Certification[];
+  
+  // Skills with proficiency
+  skillsWithProficiency?: Array<{
+    name: string;
+    category: 'technical' | 'soft' | 'tool' | 'language' | 'framework';
+    proficiency: number; // 0-100
+    yearsOfExperience?: number;
+  }>;
+  
+  // Languages
+  languages: Language[];
+  
+  // Interests
+  interests: string[];
+  
+  // Achievements
+  achievements: Achievement[];
+  
+  // Daily Goals
+  dailyGoals: DailyGoal[];
+  
+  // Weekly Activity
+  weeklyActivity: WeeklyActivity[];
+  
+  // Analytics
+  analytics: {
+    totalProjects: number;
+    completedProjects: number;
+    totalSkills: number;
+    totalInterviews: number;
+    resumeScore: number;
+    jobMatchProbability: number;
+    weeklyHours: number;
+    avgProductivity: number;
+  };
+  
+  // Resume Data
+  resumeData?: ResumeData;
+  
+  // Timestamps
+  createdAt?: string;
+  updatedAt?: string;
+  lastLoginAt?: string;
+}
+
 // Career Graph Types
 export interface CareerActivity {
   id: string;

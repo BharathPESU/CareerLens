@@ -4,9 +4,14 @@
 runConfig:
   # Increase this value if you'd like to automatically spin up
   # more instances in response to increased traffic.
-  maxInstances: 3
   minInstances: 0
-  # Set environment variables
-  env:
-    - variable: NODE_ENV
-      value: production
+  maxInstances: 3
+  cpu: 1
+  memoryMiB: 512
+  concurrency: 80
+
+env:
+  # Environment variables will be set automatically from Firebase
+  # Additional secrets can be managed via Firebase Console
+  - variable: NODE_ENV
+    value: production

@@ -42,8 +42,8 @@ export async function fetchProfile(db: Firestore, userId: string): Promise<UserP
     return undefined;
   }
   try {
-    // Explicitly enable the network to help mitigate "client is offline" errors in race conditions.
-    await enableNetwork(db);
+    // Don't call enableNetwork as it may cause Target ID conflicts in concurrent requests
+    // await enableNetwork(db);
     
     const docRef = doc(db, 'users', userId);
     const docSnap = await getDoc(docRef);
@@ -58,6 +58,22 @@ export async function fetchProfile(db: Firestore, userId: string): Promise<UserP
     }
   } catch (err: any) {
     console.error('Error fetching profile from Firestore:', err);
+    
+    // Handle Target ID conflicts
+    if (err?.code === 'target-id-exists' || err?.message?.includes('Target ID already exists')) {
+      console.warn('Firestore target ID conflict detected, retrying...');
+      await new Promise(resolve => setTimeout(resolve, 100));
+      try {
+        const docRef = doc(db, 'users', userId);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          return docSnap.data() as UserProfile;
+        }
+      } catch (retryError) {
+        console.error('Retry failed:', retryError);
+      }
+    }
+    
     // Propagate the error so the UI can handle it (e.g., show a toast).
     if (err.message.includes('offline')) {
        throw new Error('Could not connect to the database. Please check your internet connection.');

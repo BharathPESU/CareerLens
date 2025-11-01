@@ -7,7 +7,7 @@ runConfig:
   minInstances: 0
   maxInstances: 3
   cpu: 1
-  memoryMiB: 512
+  memoryMiB: 1024
   concurrency: 80
 
 env:
@@ -15,3 +15,11 @@ env:
   # Additional secrets can be managed via Firebase Console
   - variable: NODE_ENV
     value: production
+  - variable: NEXT_PUBLIC_FIREBASE_PROJECT_ID
+    value: careerlens-1
+  - variable: GCLOUD_PROJECT
+    value: careerlens-1
+  - variable: FIREBASE_CONFIG
+    availability:
+      - BUILD
+      - RUNTIME

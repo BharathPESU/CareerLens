@@ -58,6 +58,7 @@ export default function EnglishHelperPage() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const recognitionRef = useRef<any>(null);
+  const isRecognitionRunning = useRef(false);
 
   // Session state
   const [isSessionActive, setIsSessionActive] = useState(false);
@@ -125,6 +126,10 @@ export default function EnglishHelperPage() {
         recognitionRef.current.interimResults = true;
         recognitionRef.current.lang = 'en-US';
 
+        recognitionRef.current.onstart = () => {
+          isRecognitionRunning.current = true;
+        };
+
         recognitionRef.current.onresult = (event: any) => {
           const transcript = Array.from(event.results)
             .map((result: any) => result[0].transcript)
@@ -133,9 +138,19 @@ export default function EnglishHelperPage() {
         };
 
         recognitionRef.current.onend = () => {
+          isRecognitionRunning.current = false;
           if (isMicActive && isSessionActive) {
-            recognitionRef.current.start();
+            try {
+              recognitionRef.current.start();
+            } catch (error) {
+              console.log('Recognition restart failed, already running');
+            }
           }
+        };
+
+        recognitionRef.current.onerror = (event: any) => {
+          console.error('Speech recognition error:', event.error);
+          isRecognitionRunning.current = false;
         };
       }
     }
@@ -145,9 +160,21 @@ export default function EnglishHelperPage() {
   useEffect(() => {
     if (recognitionRef.current) {
       if (isMicActive && isSessionActive) {
-        recognitionRef.current.start();
+        if (!isRecognitionRunning.current) {
+          try {
+            recognitionRef.current.start();
+          } catch (error) {
+            console.log('Recognition start error:', error);
+          }
+        }
       } else {
-        recognitionRef.current.stop();
+        if (isRecognitionRunning.current) {
+          try {
+            recognitionRef.current.stop();
+          } catch (error) {
+            console.log('Recognition stop error:', error);
+          }
+        }
       }
     }
   }, [isMicActive, isSessionActive]);

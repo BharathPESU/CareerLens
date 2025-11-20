@@ -118,6 +118,13 @@ export default function EnglishHelperPage() {
   // Request camera and microphone permissions
   const requestPermissions = async () => {
     try {
+      // Stop any existing stream first
+      if (mediaStreamRef.current) {
+        console.log('🔄 Stopping existing media stream...');
+        mediaStreamRef.current.getTracks().forEach(track => track.stop());
+        mediaStreamRef.current = null;
+      }
+      
       console.log('🎥 Requesting camera and microphone permissions...');
       const stream = await navigator.mediaDevices.getUserMedia({
         video: true,
@@ -134,9 +141,13 @@ export default function EnglishHelperPage() {
       setPermissionsGranted(true);
       setIsCameraActive(true);
       setIsMicActive(true);
+      isMicActiveRef.current = true;
+      
+      console.log('🎬 Media devices ready for session');
     } catch (error) {
       console.error('❌ Permission denied:', error);
       alert('Camera and microphone access is required for this feature. Please allow access in your browser settings.');
+      throw error; // Re-throw to prevent session from starting
     }
   };
 
@@ -311,25 +322,67 @@ export default function EnglishHelperPage() {
 
   // Start session
   const startSession = async () => {
-    if (!permissionsGranted) {
+    console.log('🎬 Starting new session...');
+    
+    // Always request fresh permissions (even if previously granted)
+    // This ensures camera and mic are properly initialized
+    try {
       await requestPermissions();
+      console.log('✅ Permissions granted, starting session');
+    } catch (error) {
+      console.error('❌ Failed to get permissions:', error);
+      return; // Don't start session if permissions denied
     }
+    
     setIsSessionActive(true);
+    isSessionActiveRef.current = true;
+    
     setTranscript([{
       speaker: 'ai',
       text: `Hello! I'm your English practice assistant. Let's work on your ${topic} conversation skills. How are you doing today?`,
       timestamp: new Date(),
     }]);
+    
     speakText(`Hello! I'm your English practice assistant. Let's work on your ${topic} conversation skills. How are you doing today?`);
   };
 
   // End session
   const endSession = () => {
+    console.log('🛑 Ending session and releasing media resources');
+    
+    // Stop speech recognition
+    if (recognitionRef.current && isRecognitionRunning.current) {
+      try {
+        recognitionRef.current.stop();
+        console.log('Speech recognition stopped');
+      } catch (error) {
+        console.log('Error stopping recognition:', error);
+      }
+    }
+    
+    // Stop all media tracks (camera and microphone)
+    if (mediaStreamRef.current) {
+      mediaStreamRef.current.getTracks().forEach(track => {
+        track.stop();
+        console.log(`Stopped ${track.kind} track:`, track.label);
+      });
+      mediaStreamRef.current = null;
+    }
+    
+    // Reset all states
     setIsSessionActive(false);
     setIsMicActive(false);
-    if (mediaStreamRef.current) {
-      mediaStreamRef.current.getTracks().forEach(track => track.stop());
-    }
+    setIsCameraActive(false);
+    setPermissionsGranted(false); // IMPORTANT: Reset permissions so they're requested again
+    setIsAISpeaking(false);
+    
+    // Update refs
+    isSessionActiveRef.current = false;
+    isMicActiveRef.current = false;
+    isAISpeakingRef.current = false;
+    isRecognitionRunning.current = false;
+    
+    console.log('✅ Session ended, all resources released');
     setShowSummary(true);
   };
 

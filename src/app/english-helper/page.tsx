@@ -121,6 +121,8 @@ export default function EnglishHelperPage() {
   // UI state
   const [showSummary, setShowSummary] = useState(false);
   const [permissionsGranted, setPermissionsGranted] = useState(false);
+  const [browserSupported, setBrowserSupported] = useState(true);
+  const [errorMessage, setErrorMessage] = useState<string>('');
 
   useEffect(() => {
     if (!user) {
@@ -182,6 +184,16 @@ export default function EnglishHelperPage() {
         mediaStreamRef.current = null;
       }
       
+      // Check if running in secure context (HTTPS or localhost)
+      if (!window.isSecureContext) {
+        throw new Error('This feature requires a secure context (HTTPS). Please access the site via HTTPS.');
+      }
+      
+      // Check if getUserMedia is available
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error('Your browser does not support camera/microphone access. Please use Chrome, Edge, or Safari.');
+      }
+      
       console.log('🎥 Requesting camera and microphone permissions...');
       const stream = await navigator.mediaDevices.getUserMedia({
         video: true,
@@ -201,9 +213,21 @@ export default function EnglishHelperPage() {
       isMicActiveRef.current = true;
       
       console.log('🎬 Media devices ready for session');
-    } catch (error) {
+    } catch (error: any) {
       console.error('❌ Permission denied:', error);
-      alert('Camera and microphone access is required for this feature. Please allow access in your browser settings.');
+      let errorMsg = 'Camera and microphone access is required for this feature.';
+      
+      if (error.name === 'NotAllowedError') {
+        errorMsg += ' Please allow access in your browser settings and reload the page.';
+      } else if (error.name === 'NotFoundError') {
+        errorMsg += ' No camera or microphone found. Please connect a device.';
+      } else if (error.name === 'NotReadableError') {
+        errorMsg += ' Your camera or microphone is already in use by another application.';
+      } else if (error.message?.includes('secure')) {
+        errorMsg = 'This feature requires HTTPS. Please access the site via a secure connection.';
+      }
+      
+      alert(errorMsg);
       throw error; // Re-throw to prevent session from starting
     }
   };
@@ -211,7 +235,31 @@ export default function EnglishHelperPage() {
   // Initialize speech recognition with hands-free auto-submit
   useEffect(() => {
     if (typeof window !== 'undefined') {
+      // Check for secure context (HTTPS)
+      if (!window.isSecureContext && window.location.hostname !== 'localhost') {
+        setBrowserSupported(false);
+        setErrorMessage('⚠️ This feature requires HTTPS. Please access the site via a secure connection.');
+        console.error('❌ Not a secure context - HTTPS required');
+        return;
+      }
+      
+      // Check for Web Speech API
       const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      if (!SpeechRecognition) {
+        setBrowserSupported(false);
+        setErrorMessage('⚠️ Your browser does not support speech recognition. Please use Chrome, Edge, or Safari.');
+        console.error('❌ Web Speech API not supported in this browser');
+        return;
+      }
+      
+      // Check for getUserMedia
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        setBrowserSupported(false);
+        setErrorMessage('⚠️ Your browser does not support camera/microphone access. Please use a modern browser.');
+        console.error('❌ getUserMedia not supported');
+        return;
+      }
+      
       if (SpeechRecognition) {
         recognitionRef.current = new SpeechRecognition();
         recognitionRef.current.continuous = true;
@@ -226,7 +274,7 @@ export default function EnglishHelperPage() {
 
         recognitionRef.current.onresult = (event: any) => {
           // Skip if AI is currently speaking to avoid picking up AI voice
-          if (isAISpeaking) {
+          if (isAISpeakingRef.current) {
             console.log('Ignoring recognition during AI speech');
             return;
           }
@@ -799,6 +847,31 @@ export default function EnglishHelperPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 p-6">
       <div className="max-w-7xl mx-auto space-y-6">
+        {/* Browser Compatibility Warning */}
+        {!browserSupported && errorMessage && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-destructive/10 border-2 border-destructive/50 rounded-lg p-4"
+          >
+            <div className="flex items-start gap-3">
+              <AlertCircle className="w-6 h-6 text-destructive flex-shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <h3 className="font-semibold text-destructive mb-1">Feature Not Available</h3>
+                <p className="text-sm text-muted-foreground">{errorMessage}</p>
+                <p className="text-sm text-muted-foreground mt-2">
+                  <strong>Requirements:</strong>
+                  <ul className="list-disc list-inside mt-1">
+                    <li>HTTPS connection (or localhost for development)</li>
+                    <li>Modern browser (Chrome, Edge, or Safari recommended)</li>
+                    <li>Microphone and camera permissions</li>
+                  </ul>
+                </p>
+              </div>
+            </div>
+          </motion.div>
+        )}
+        
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
@@ -860,10 +933,11 @@ export default function EnglishHelperPage() {
                     <Button
                       size="lg"
                       onClick={startSession}
-                      className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700"
+                      disabled={!browserSupported}
+                      className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <Play className="w-5 h-5 mr-2" />
-                      Start Practice Session
+                      {browserSupported ? 'Start Practice Session' : 'Browser Not Supported'}
                     </Button>
                   ) : (
                     <>

@@ -64,6 +64,7 @@ export default function EnglishHelperPage() {
   const isAISpeakingRef = useRef(false);
   const isSessionActiveRef = useRef(false);
   const isMicActiveRef = useRef(false);
+  const restartTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Session state
   const [isSessionActive, setIsSessionActive] = useState(false);
@@ -138,6 +139,37 @@ export default function EnglishHelperPage() {
   useEffect(() => {
     isMicActiveRef.current = isMicActive;
   }, [isMicActive]);
+
+  // Helper function to safely restart recognition with debouncing
+  const safeRestartRecognition = useCallback((delayMs: number = 500) => {
+    // Clear any pending restart
+    if (restartTimeoutRef.current) {
+      clearTimeout(restartTimeoutRef.current);
+      restartTimeoutRef.current = null;
+    }
+    
+    // Check conditions
+    if (!isMicActiveRef.current || !isSessionActiveRef.current || isAISpeakingRef.current) {
+      console.log('⏭️ Skipping restart - conditions not met');
+      return;
+    }
+    
+    // Schedule restart
+    restartTimeoutRef.current = setTimeout(() => {
+      try {
+        if (!isRecognitionRunning.current && !isAISpeakingRef.current && isMicActiveRef.current && isSessionActiveRef.current) {
+          recognitionRef.current?.start();
+          console.log('🔄 Recognition safely restarted');
+        }
+      } catch (error: any) {
+        // Ignore "already started" errors
+        if (!error.message?.includes('already started')) {
+          console.log('⚠️ Restart error:', error.message);
+        }
+      }
+      restartTimeoutRef.current = null;
+    }, delayMs);
+  }, []);
 
   // Request camera and microphone permissions
   const requestPermissions = async () => {
@@ -247,48 +279,32 @@ export default function EnglishHelperPage() {
           isRecognitionRunning.current = false;
           setIsListening(false);
           console.log('⏸️ Speech recognition ended');
-          console.log('📊 State check - Mic:', isMicActiveRef.current, 'Session:', isSessionActiveRef.current, 'AI Speaking:', isAISpeakingRef.current);
+          console.log('📊 State - Mic:', isMicActiveRef.current, 'Session:', isSessionActiveRef.current, 'AI Speaking:', isAISpeakingRef.current);
           
-          // Auto-restart if mic is active, session is running, and AI is not speaking
-          if (isMicActiveRef.current && isSessionActiveRef.current && !isAISpeakingRef.current) {
-            console.log('✅ Conditions met, restarting in 500ms...');
-            setTimeout(() => {
-              try {
-                if (!isRecognitionRunning.current && !isAISpeakingRef.current) {
-                  recognitionRef.current.start();
-                  console.log('🔄 Recognition restarted successfully!');
-                }
-              } catch (error) {
-                console.log('❌ Recognition restart failed:', error);
-              }
-            }, 500);
-          } else {
-            console.log('❌ Not restarting - conditions not met');
-          }
+          // Use safe restart function with debouncing
+          safeRestartRecognition(500);
         };
 
         recognitionRef.current.onerror = (event: any) => {
-          console.error('Speech recognition error:', event.error);
+          // Don't log "aborted" as error - it's normal when stopping/restarting
+          if (event.error !== 'aborted') {
+            console.error('Speech recognition error:', event.error);
+          } else {
+            console.log('ℹ️ Recognition aborted (normal during restart)');
+          }
+          
           isRecognitionRunning.current = false;
+          setIsListening(false);
+          
           // Clear timer on error
           if (silenceTimerRef.current) {
             clearTimeout(silenceTimerRef.current);
           }
           
-          // Auto-restart on certain errors
-          if (event.error === 'no-speech' || event.error === 'aborted') {
-            if (isMicActiveRef.current && isSessionActiveRef.current && !isAISpeakingRef.current) {
-              setTimeout(() => {
-                try {
-                  if (!isRecognitionRunning.current && !isAISpeakingRef.current) {
-                    recognitionRef.current.start();
-                    console.log('🔄 Restarting after error...');
-                  }
-                } catch (error) {
-                  console.log('❌ Could not restart after error:', error);
-                }
-              }, 500);
-            }
+          // Auto-restart on certain errors (but not "aborted" - that happens during normal stop/start)
+          if (event.error === 'no-speech') {
+            console.log('🔄 No speech detected, restarting...');
+            safeRestartRecognition(1000);
           }
         };
       }
@@ -298,8 +314,11 @@ export default function EnglishHelperPage() {
       if (silenceTimerRef.current) {
         clearTimeout(silenceTimerRef.current);
       }
+      if (restartTimeoutRef.current) {
+        clearTimeout(restartTimeoutRef.current);
+      }
     };
-  }, [isMicActive, isSessionActive, isAISpeaking]);
+  }, [isMicActive, isSessionActive, isAISpeaking, safeRestartRecognition]);
 
   // Start/stop speech recognition
   useEffect(() => {
@@ -374,6 +393,16 @@ export default function EnglishHelperPage() {
   const endSession = () => {
     console.log('🛑 Ending session and releasing media resources');
     
+    // Clear all timeouts
+    if (silenceTimerRef.current) {
+      clearTimeout(silenceTimerRef.current);
+      silenceTimerRef.current = null;
+    }
+    if (restartTimeoutRef.current) {
+      clearTimeout(restartTimeoutRef.current);
+      restartTimeoutRef.current = null;
+    }
+    
     // Stop speech recognition
     if (recognitionRef.current && isRecognitionRunning.current) {
       try {
@@ -435,7 +464,8 @@ export default function EnglishHelperPage() {
       }
       
       const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = accent === 'american' ? 'en-US' : accent === 'british' ? 'en-GB' : 'en-AU';
+      utterance.lang =
+        accent === 'american' ? 'en-US' : accent === 'british' ? 'en-GB' : accent === 'australian' ? 'en-AU' : 'en-US';
       utterance.rate = 0.9;
       
       utterance.onstart = () => {
@@ -458,25 +488,8 @@ export default function EnglishHelperPage() {
         
         console.log('📊 After AI speech - Mic:', isMicActiveRef.current, 'Session:', isSessionActiveRef.current);
         
-        // Resume speech recognition after AI finishes speaking
-        if (isMicActiveRef.current && isSessionActiveRef.current && recognitionRef.current) {
-          console.log('⏰ Setting timeout to restart recognition...');
-          setTimeout(() => {
-            try {
-              if (!isRecognitionRunning.current) {
-                console.log('▶️ Starting recognition after AI speech...');
-                recognitionRef.current.start();
-                console.log('✅ Recognition restarted after AI speech');
-              } else {
-                console.log('⚠️ Recognition already running');
-              }
-            } catch (error) {
-              console.log('❌ Error restarting recognition after AI speech:', error);
-            }
-          }, 800);
-        } else {
-          console.log('❌ Not restarting recognition - Mic:', isMicActiveRef.current, 'Session:', isSessionActiveRef.current);
-        }
+        // Resume speech recognition after AI finishes speaking using safe restart
+        safeRestartRecognition(800);
       };
 
       utterance.onerror = (error) => {
@@ -492,19 +505,8 @@ export default function EnglishHelperPage() {
           console.log('🎤 Microphone re-enabled after error');
         }
         
-        // Resume speech recognition on error
-        if (isMicActiveRef.current && isSessionActiveRef.current && recognitionRef.current) {
-          setTimeout(() => {
-            try {
-              if (!isRecognitionRunning.current) {
-                recognitionRef.current.start();
-                console.log('✅ Recognition restarted after synthesis error');
-              }
-            } catch (error) {
-              console.log('❌ Error restarting recognition after synthesis error:', error);
-            }
-          }, 500);
-        }
+        // Resume speech recognition on error using safe restart
+        safeRestartRecognition(500);
       };
 
       speechSynthesis.speak(utterance);

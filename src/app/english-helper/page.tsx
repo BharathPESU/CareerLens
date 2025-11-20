@@ -31,6 +31,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/hooks/use-auth';
 import { useRouter } from 'next/navigation';
+import { getEnglishHelperStarterPrompt, getEnglishHelperFollowupResponse } from '@/lib/actions';
 
 type ProficiencyLevel = 'basic' | 'intermediate' | 'advanced';
 type ConversationTopic = 'daily' | 'interview' | 'travel' | 'technical' | 'idioms' | 'debate';
@@ -380,13 +381,33 @@ export default function EnglishHelperPage() {
     setIsSessionActive(true);
     isSessionActiveRef.current = true;
     
-    setTranscript([{
-      speaker: 'ai',
-      text: `Hello! I'm your English practice assistant. Let's work on your ${topic} conversation skills. How are you doing today?`,
-      timestamp: new Date(),
-    }]);
+    // Get AI-generated greeting from Gemini
+    console.log('🤖 Requesting AI greeting from Gemini...');
+    const response = await getEnglishHelperStarterPrompt({
+      topic,
+      proficiency,
+      accent,
+    });
     
-    speakText(`Hello! I'm your English practice assistant. Let's work on your ${topic} conversation skills. How are you doing today?`);
+    if (response.success && response.data) {
+      console.log('✅ AI greeting received:', response.data.greeting);
+      setTranscript([{
+        speaker: 'ai',
+        text: response.data.greeting,
+        timestamp: new Date(),
+      }]);
+      speakText(response.data.greeting);
+    } else {
+      console.error('❌ Failed to get AI greeting:', response.error);
+      // Fallback to default greeting
+      const fallbackGreeting = `Hello! I'm your English practice assistant. Let's work on your ${topic} conversation skills. How are you doing today?`;
+      setTranscript([{
+        speaker: 'ai',
+        text: fallbackGreeting,
+        timestamp: new Date(),
+      }]);
+      speakText(fallbackGreeting);
+    }
   };
 
   // End session
@@ -528,8 +549,83 @@ export default function EnglishHelperPage() {
     };
     setTranscript(prev => [...prev, userMessage]);
 
-    // Simulate AI response (in production, call your AI API)
-    setTimeout(() => {
+    // Call Gemini AI for real conversation and feedback
+    console.log('🤖 Sending to Gemini AI:', textToSubmit);
+    const transcriptForAI = [...transcript, userMessage].map(item => ({
+      speaker: item.speaker,
+      text: item.text,
+      timestamp: item.timestamp.toISOString(),
+    }));
+
+    const response = await getEnglishHelperFollowupResponse({
+      transcript: transcriptForAI,
+      topic,
+      proficiency,
+    });
+
+    if (response.success && response.data) {
+      console.log('✅ AI response received:', response.data.response);
+      console.log('📊 Feedback:', response.data.feedback);
+      
+      const aiMessage = {
+        speaker: 'ai' as const,
+        text: response.data.response,
+        timestamp: new Date(),
+      };
+      setTranscript(prev => [...prev, aiMessage]);
+      speakText(response.data.response);
+
+      // Convert AI feedback to FeedbackItem format
+      const newFeedback: FeedbackItem[] = [
+        ...response.data.feedback.grammar.issues.map(issue => ({
+          type: 'grammar' as const,
+          message: issue,
+          severity: 'error' as const,
+        })),
+        ...response.data.feedback.vocabulary.suggestions.map(suggestion => ({
+          type: 'vocabulary' as const,
+          message: suggestion,
+          severity: 'info' as const,
+        })),
+        ...response.data.feedback.pronunciation.tips.map(tip => ({
+          type: 'pronunciation' as const,
+          message: tip,
+          severity: 'info' as const,
+        })),
+        ...response.data.feedback.fluency.observations.map(obs => ({
+          type: 'fluency' as const,
+          message: obs,
+          severity: 'info' as const,
+        })),
+      ];
+      
+      setFeedback(newFeedback);
+
+      // Update stats with real AI scores
+      const feedback = response.data!.feedback;
+      setSessionStats(prev => ({
+        ...prev,
+        wordsSpoken: prev.wordsSpoken + textToSubmit.split(' ').length,
+        grammarScore: feedback.grammar.score,
+        pronunciationScore: feedback.pronunciation.score,
+        fluencyScore: feedback.fluency.score,
+        overallScore: Math.round((
+          feedback.grammar.score +
+          feedback.pronunciation.score +
+          feedback.fluency.score
+        ) / 3),
+      }));
+
+      // Check if session should end
+      if (response.data.isEndOfSession) {
+        console.log('🏁 AI indicated session should end');
+        setTimeout(() => {
+          endSession();
+        }, 3000); // Give time for last AI response to finish speaking
+      }
+    } else {
+      console.error('❌ AI response failed:', response.error);
+      // Fallback to mock response if AI fails
       const aiResponse = generateAIResponse(textToSubmit, topic);
       const aiMessage = {
         speaker: 'ai' as const,
@@ -539,17 +635,15 @@ export default function EnglishHelperPage() {
       setTranscript(prev => [...prev, aiMessage]);
       speakText(aiResponse);
 
-      // Generate feedback
       const newFeedback = generateFeedback(textToSubmit);
       setFeedback(newFeedback);
 
-      // Update stats
       setSessionStats(prev => ({
         ...prev,
         wordsSpoken: prev.wordsSpoken + textToSubmit.split(' ').length,
       }));
-    }, 1000);
-  }, [currentUserText, isAISpeaking, topic]);
+    }
+  }, [currentUserText, isAISpeaking, topic, proficiency, transcript]);
 
   // Listen for autosubmit events
   useEffect(() => {

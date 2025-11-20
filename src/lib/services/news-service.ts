@@ -23,7 +23,8 @@ export interface NewsSource {
 }
 
 // NewsAPI configuration
-const NEWS_API_KEY = '649784e50c964c6d80cd7e75ddb0d94f';
+// Note: API key is set in the server-side API route (/api/news)
+// This client-side service calls the API route, not NewsAPI directly
 const NEWS_API_BASE_URL = 'https://newsapi.org/v2';
 
 // Indian News Sources

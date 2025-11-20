@@ -22,6 +22,7 @@ import {
   GraduationCap,
   TrendingUp,
   Newspaper,
+  Languages,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
@@ -46,6 +47,7 @@ const allNavItems = [
   { href: '/interview-prep', icon: <MessageSquare />, label: 'Interview' },
   { href: '/learning-helper', icon: <Sparkles />, label: 'AI Helper' },
   { href: '/ai-interviewer', icon: <Bot />, label: 'AI Interviewer' },
+  { href: '/english-helper', icon: <Languages />, label: 'English Helper' },
   { href: '/library-finder', icon: <LibrarySquare />, label: 'Libraries' },
   { href: '/ebooks', icon: <BookOpen />, label: 'eBooks' },
   { href: '/news', icon: <Newspaper />, label: 'News' },

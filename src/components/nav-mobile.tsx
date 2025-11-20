@@ -20,6 +20,7 @@ import {
   GraduationCap,
   UserPlus,
   TrendingUp,
+  Languages,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
@@ -41,6 +42,7 @@ const toolNavItems = [
   { href: '/interview-prep', icon: <MessageSquare />, label: 'Interview' },
   { href: '/learning-helper', icon: <Sparkles />, label: 'AI Helper' },
   { href: '/ai-interviewer', icon: <Bot />, label: 'AI Interviewer' },
+  { href: '/english-helper', icon: <Languages />, label: 'English' },
   { href: '/library-finder', icon: <LibrarySquare />, label: 'Libraries' },
   { href: '/calendar', icon: <Calendar />, label: 'AI Calendar' },
   { href: '/community', icon: <Users />, label: 'Community' },

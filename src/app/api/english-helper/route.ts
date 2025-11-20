@@ -33,6 +33,41 @@ Your role:
 
 Remember: Your goal is to help the student practice speaking, so keep your responses brief to give them more speaking time.`;
 
+    // If starting conversation (no user message), provide greeting
+    if (!userMessage || userMessage.trim() === '') {
+      const greetingPrompt = `${systemPrompt}\n\nGreet the student warmly and start the conversation by asking them a simple question about ${topic}. Keep it brief - 1-2 sentences only.`;
+      
+      const greetingResponse = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: greetingPrompt }] }],
+          generationConfig: {
+            temperature: 0.8,
+            maxOutputTokens: 100,
+            topP: 0.95,
+            topK: 40,
+          },
+        }),
+      });
+
+      if (!greetingResponse.ok) {
+        throw new Error('Failed to get AI greeting');
+      }
+
+      const greetingData = await greetingResponse.json();
+      const aiResponse = greetingData.candidates?.[0]?.content?.parts?.[0]?.text || 
+                        "Hello! I'm excited to practice English with you today. How are you doing?";
+
+      return NextResponse.json({
+        success: true,
+        aiResponse: aiResponse,
+        feedback: [],
+      });
+    }
+
     // Format conversation history for Gemini
     const contents = [
       {
@@ -78,7 +113,7 @@ Remember: Your goal is to help the student practice speaking, so keep your respo
 
     return NextResponse.json({
       success: true,
-      response: aiResponse,
+      aiResponse: aiResponse,
       feedback: feedback,
     });
 
@@ -88,7 +123,7 @@ Remember: Your goal is to help the student practice speaking, so keep your respo
       { 
         success: false, 
         error: error instanceof Error ? error.message : 'Internal server error',
-        response: "I'm sorry, I'm having trouble right now. Let's continue practicing." 
+        aiResponse: "I'm sorry, I'm having trouble right now. Let's continue practicing." 
       },
       { status: 500 }
     );

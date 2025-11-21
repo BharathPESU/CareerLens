@@ -48,29 +48,29 @@ env:
   - variable: BIGQUERY_DATASET_ID
     value: career_data
   
-  # News & Search APIs (Configure as secrets in Firebase Console)
-  - variable: NEWS_API_KEY
-    secret: NEWS_API_KEY
-  - variable: GOOGLE_CUSTOM_SEARCH_API_KEY
-    secret: GOOGLE_CUSTOM_SEARCH_API_KEY
-  - variable: GOOGLE_CUSTOM_SEARCH_ENGINE_ID
-    secret: GOOGLE_CUSTOM_SEARCH_ENGINE_ID
+  # News & Search APIs (Optional - Comment out if not configured)
+  # - variable: NEWS_API_KEY
+  #   secret: NEWS_API_KEY
+  # - variable: GOOGLE_CUSTOM_SEARCH_API_KEY
+  #   secret: GOOGLE_CUSTOM_SEARCH_API_KEY
+  # - variable: GOOGLE_CUSTOM_SEARCH_ENGINE_ID
+  #   secret: GOOGLE_CUSTOM_SEARCH_ENGINE_ID
   
-  # Reddit API (Configure as secrets in Firebase Console)
-  - variable: REDDIT_CLIENT_ID
-    secret: REDDIT_CLIENT_ID
-  - variable: REDDIT_CLIENT_SECRET
-    secret: REDDIT_CLIENT_SECRET
+  # Reddit API (Optional - Comment out if not configured)
+  # - variable: REDDIT_CLIENT_ID
+  #   secret: REDDIT_CLIENT_ID
+  # - variable: REDDIT_CLIENT_SECRET
+  #   secret: REDDIT_CLIENT_SECRET
   - variable: REDDIT_USER_AGENT
     value: "CareerLens/1.0"
   
-  # Redis Configuration (Configure as secrets in Firebase Console)
-  - variable: REDIS_HOST
-    secret: REDIS_HOST
+  # Redis Configuration (Optional - Comment out if not configured)
+  # - variable: REDIS_HOST
+  #   secret: REDIS_HOST
   - variable: REDIS_PORT
     value: "6379"
-  - variable: REDIS_PASSWORD
-    secret: REDIS_PASSWORD
+  # - variable: REDIS_PASSWORD
+  #   secret: REDIS_PASSWORD
   - variable: REDIS_TLS
     value: "false"
   

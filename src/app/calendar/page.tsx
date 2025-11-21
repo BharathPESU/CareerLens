@@ -530,7 +530,8 @@ export default function CalendarPage() {
             </Button>
             <Button 
               onClick={handleCreateNewEvent}
-              className="bg-blue-600 hover:bg-blue-700"
+              variant="neon"
+              className="shadow-neon-cyan"
             >
               <Plus className="w-4 h-4 mr-2" />
               New Event
@@ -545,9 +546,9 @@ export default function CalendarPage() {
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.1 }}
           >
-            <Card className="bg-gradient-to-br from-blue-500/10 to-purple-500/10 border-blue-500/20 backdrop-blur-sm">
+            <Card className="bg-gradient-to-br from-neon-cyan/10 to-neon-purple/10 border-neon-cyan/20 backdrop-blur-sm">
               <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium text-slate-400">
+                <CardTitle className="text-sm font-medium text-white/75">
                   Today's Progress
                 </CardTitle>
               </CardHeader>
@@ -633,9 +634,9 @@ export default function CalendarPage() {
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.4 }}
           >
-            <Card className="bg-gradient-to-br from-purple-500/10 to-pink-500/10 border-purple-500/20 backdrop-blur-sm">
+            <Card className="bg-gradient-to-br from-neon-purple/10 to-neon-emerald/10 border-neon-purple/20 backdrop-blur-sm">
               <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium text-slate-400">
+                <CardTitle className="text-sm font-medium text-white/75">
                   AI Suggestions
                 </CardTitle>
               </CardHeader>
@@ -749,10 +750,10 @@ export default function CalendarPage() {
             </Card>
 
             {/* AI Suggestions */}
-            <Card className="mt-6 bg-gradient-to-br from-purple-900/20 to-pink-900/20 border-purple-500/30 backdrop-blur-sm">
+            <Card className="mt-6 bg-gradient-to-br from-neon-purple/10 to-neon-emerald/10 border-neon-purple/30 backdrop-blur-sm">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-white">
-                  <Sparkles className="w-5 h-5 text-purple-400" />
+                  <Sparkles className="w-5 h-5 text-neon-purple" />
                   AI Suggestions
                 </CardTitle>
               </CardHeader>
@@ -791,12 +792,12 @@ export default function CalendarPage() {
                       <Button
                         size="sm"
                         onClick={() => addSuggestionToCalendar(suggestion)}
-                        className="bg-purple-600 hover:bg-purple-700"
+                        className="bg-neon-purple/30 hover:bg-neon-purple/40 border border-neon-purple/50"
                       >
                         <Plus className="w-4 h-4" />
                       </Button>
                     </div>
-                    <p className="text-xs text-purple-400 italic">
+                    <p className="text-xs text-neon-purple italic">
                       💡 {suggestion.reasoning}
                     </p>
                   </motion.div>

@@ -19,8 +19,24 @@ export default function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <body className="font-body antialiased" suppressHydrationWarning>
-        <div className="animated-gradient absolute top-0 left-0 w-full h-full -z-10" />
+      <body className="font-body antialiased bg-[#0E0F12]" suppressHydrationWarning>
+        {/* Animated Mesh Wave Background */}
+        <div className="fixed top-0 left-0 w-full h-full -z-30 overflow-hidden">
+          <div className="mesh-wave-bg absolute inset-0" />
+        </div>
+        
+        {/* Custom Background Image Layer (Optional) */}
+        <div 
+          className="fixed top-0 left-0 w-full h-full -z-20 bg-cover bg-center bg-no-repeat"
+          style={{
+            backgroundImage: 'url(/background.jpg)', // Change to /background.gif for animated backgrounds
+            opacity: 0.15, // Adjust opacity (0.1 to 0.3 recommended for readability)
+          }}
+        />
+        
+        {/* Animated Gradient Overlay */}
+        <div className="animated-gradient fixed top-0 left-0 w-full h-full -z-10 opacity-80" />
+        
         <FirebaseProvider>
           <AppLayout>{children}</AppLayout>
           <Toaster />

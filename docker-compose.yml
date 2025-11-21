@@ -1,0 +1,118 @@
+version: '3.8'
+
+services:
+  # Redis - Queue & Pub/Sub
+  redis:
+    image: redis:7-alpine
+    container_name: careerlens-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    networks:
+      - careerlens-network
+
+  # Next.js Web Server
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: careerlens-web
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - SOCKET_URL=http://socket:3001
+      - NEXT_PUBLIC_SOCKET_URL=http://localhost:3001
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - careerlens-network
+
+  # Background Worker
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    container_name: careerlens-worker
+    environment:
+      - NODE_ENV=production
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - WORKER_CONCURRENCY=5
+      - WORKER_MAX_JOBS=10
+      - GOOGLE_GENAI_API_KEY=${GOOGLE_GENAI_API_KEY}
+      - GOOGLE_CLOUD_PROJECT_ID=${GOOGLE_CLOUD_PROJECT_ID}
+      - BIGQUERY_DATASET=${BIGQUERY_DATASET}
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - careerlens-network
+    # Optionally scale workers
+    deploy:
+      replicas: 2
+
+  # Socket.IO Server
+  socket:
+    build:
+      context: .
+      dockerfile: Dockerfile.socket
+    container_name: careerlens-socket
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=production
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - SOCKET_PORT=3001
+      - CORS_ORIGIN=http://localhost:3000
+      - JWT_SECRET=${JWT_SECRET}
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - careerlens-network
+
+  # Optional: Redis Commander (GUI for Redis)
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: careerlens-redis-commander
+    ports:
+      - "8081:8081"
+    environment:
+      - REDIS_HOSTS=local:redis:6379
+    depends_on:
+      - redis
+    networks:
+      - careerlens-network
+
+volumes:
+  redis-data:
+    driver: local
+
+networks:
+  careerlens-network:
+    driver: bridge
+
+# Usage:
+# 1. Create .env file with required variables
+# 2. Run: docker-compose up -d
+# 3. Access:
+#    - CareerLens: http://localhost:3000
+#    - Socket.IO: http://localhost:3001
+#    - Redis Commander: http://localhost:8081
+# 4. Scale workers: docker-compose up -d --scale worker=5
+# 5. View logs: docker-compose logs -f worker
+# 6. Stop all: docker-compose down

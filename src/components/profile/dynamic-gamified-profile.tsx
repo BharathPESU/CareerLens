@@ -60,10 +60,10 @@ export function DynamicGamifiedProfile() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-slate-950 via-blue-950 to-purple-950">
+      <div className="flex items-center justify-center min-h-screen bg-background">
         <div className="text-center">
-          <Loader2 className="w-12 h-12 animate-spin text-blue-400 mx-auto mb-4" />
-          <p className="text-blue-200">Loading your career dashboard...</p>
+          <Loader2 className="w-12 h-12 animate-spin text-neon-cyan mx-auto mb-4" />
+          <p className="text-white/75">Loading your career dashboard...</p>
         </div>
       </div>
     );
@@ -71,14 +71,14 @@ export function DynamicGamifiedProfile() {
 
   if (!profile) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-slate-950 via-blue-950 to-purple-950">
+      <div className="flex items-center justify-center min-h-screen bg-background">
         <Card className="p-8 text-center max-w-md">
-          <Brain className="w-16 h-16 text-blue-400 mx-auto mb-4" />
+          <Brain className="w-16 h-16 text-neon-purple mx-auto mb-4" />
           <h2 className="text-2xl font-bold mb-2">Welcome to CareerLens!</h2>
-          <p className="text-gray-600 mb-6">
+          <p className="text-white/65 mb-6">
             Complete your profile to unlock your personalized career dashboard
           </p>
-          <Button asChild>
+          <Button asChild variant="neon">
             <Link href="/profile/edit">
               <Edit className="w-4 h-4 mr-2" />
               Complete Profile
@@ -106,13 +106,13 @@ export function DynamicGamifiedProfile() {
   const lockedAchievements = profile.achievements.filter((a) => !a.unlocked).slice(0, 2);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-blue-950 to-purple-950 text-white relative overflow-hidden">
+    <div className="min-h-screen bg-background text-white relative overflow-hidden">
       {/* Animated Background */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         {[...Array(20)].map((_, i) => (
           <motion.div
             key={i}
-            className="absolute w-1 h-1 bg-blue-400/30 rounded-full"
+            className="absolute w-1 h-1 bg-neon-cyan/30 rounded-full"
             style={{
               left: `${Math.random() * 100}%`,
               top: `${Math.random() * 100}%`,
@@ -134,13 +134,13 @@ export function DynamicGamifiedProfile() {
         {/* Header with Edit Button */}
         <div className="flex items-center justify-between">
           <motion.h1
-            className="text-4xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent"
+            className="text-4xl font-bold bg-gradient-to-r from-neon-cyan via-neon-purple to-neon-emerald bg-clip-text text-transparent"
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
           >
             Career Dashboard
           </motion.h1>
-          <Button asChild variant="outline">
+          <Button asChild variant="glass">
             <Link href="/profile/edit">
               <Edit className="w-4 h-4 mr-2" />
               Edit Profile
@@ -154,10 +154,10 @@ export function DynamicGamifiedProfile() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
         >
-          <Card className="bg-gradient-to-br from-blue-900/40 to-purple-900/40 border-blue-500/30 backdrop-blur-xl p-6">
+          <Card className="bg-gradient-to-br from-neon-purple/10 to-neon-cyan/10 border-white/20 backdrop-blur-xl p-6">
             <div className="flex items-center gap-6">
               <motion.div
-                className="w-24 h-24 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-3xl font-bold"
+                className="w-24 h-24 rounded-full bg-gradient-to-br from-neon-purple to-neon-cyan flex items-center justify-center text-3xl font-bold border-2 border-white/20"
                 animate={{ rotate: [0, 5, -5, 0] }}
                 transition={{ duration: 2, repeat: Infinity }}
               >
@@ -166,15 +166,15 @@ export function DynamicGamifiedProfile() {
 
               <div className="flex-1">
                 <h2 className="text-3xl font-bold">{profile.name || 'Anonymous User'}</h2>
-                <p className="text-blue-300 text-lg">{profile.title || 'Career Explorer'}</p>
+                <p className="text-neon-cyan text-lg">{profile.title || 'Career Explorer'}</p>
                 <div className="flex gap-4 mt-2">
-                  <Badge className="bg-purple-500/20 text-purple-300 border-purple-500/30">
+                  <Badge className="bg-neon-purple/20 text-neon-purple border-neon-purple/30">
                     Level {profile.level}
                   </Badge>
-                  <Badge className="bg-blue-500/20 text-blue-300 border-blue-500/30">
+                  <Badge className="bg-neon-cyan/20 text-neon-cyan border-neon-cyan/30">
                     {profile.careerStage}
                   </Badge>
-                  <Badge className="bg-green-500/20 text-green-300 border-green-500/30">
+                  <Badge className="bg-neon-emerald/20 text-neon-emerald border-neon-emerald/30">
                     <Flame className="w-3 h-3 mr-1" />
                     {profile.streak} Day Streak
                   </Badge>
@@ -182,8 +182,8 @@ export function DynamicGamifiedProfile() {
               </div>
 
               <div className="text-right">
-                <div className="text-sm text-blue-300">Resume Score</div>
-                <div className="text-4xl font-bold text-green-400">
+                <div className="text-sm text-white/65">Resume Score</div>
+                <div className="text-4xl font-bold text-neon-emerald">
                   {profile.analytics.resumeScore}%
                 </div>
               </div>
@@ -282,20 +282,20 @@ export function DynamicGamifiedProfile() {
             </motion.div>
 
             {/* Quick Stats */}
-            <Card className="bg-gradient-to-br from-blue-900/40 to-cyan-900/40 border-blue-500/30 backdrop-blur-xl p-6">
+            <Card className="bg-gradient-to-br from-neon-cyan/20 to-neon-purple/20 border-neon-cyan/30 backdrop-blur-xl p-6">
               <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
-                <TrendingUp className="w-5 h-5 text-blue-400" />
+                <TrendingUp className="w-5 h-5 text-neon-cyan" />
                 Quick Stats
               </h3>
               <div className="grid grid-cols-2 gap-4">
                 <div className="text-center">
-                  <div className="text-3xl font-bold text-blue-400">
+                  <div className="text-3xl font-bold text-neon-cyan">
                     {profile.analytics.totalProjects}
                   </div>
-                  <div className="text-xs text-blue-300">Projects</div>
+                  <div className="text-xs text-neon-cyan/80">Projects</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-3xl font-bold text-purple-400">
+                  <div className="text-3xl font-bold text-neon-purple">
                     {profile.analytics.totalSkills}
                   </div>
                   <div className="text-xs text-purple-300">Skills</div>
@@ -349,9 +349,9 @@ export function DynamicGamifiedProfile() {
           {/* Center Column - Main Content */}
           <div className="lg:col-span-2 space-y-6">
             {/* Skills Graph */}
-            <Card className="bg-gradient-to-br from-slate-900/40 to-blue-900/40 border-slate-500/30 backdrop-blur-xl p-6">
+            <Card className="bg-gradient-to-br from-white/[0.08] to-neon-cyan/10 border-white/20 backdrop-blur-xl p-6">
               <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
-                <Code className="w-5 h-5 text-blue-400" />
+                <Code className="w-5 h-5 text-neon-cyan" />
                 Top Skills
               </h3>
 
@@ -365,14 +365,14 @@ export function DynamicGamifiedProfile() {
                       transition={{ delay: 0.3 + idx * 0.1 }}
                     >
                       <div className="flex items-center justify-between mb-1">
-                        <span className="text-sm font-medium text-blue-200">
+                        <span className="text-sm font-medium text-white/90">
                           {skill.name}
                         </span>
-                        <span className="text-xs text-blue-400">{skill.level}%</span>
+                        <span className="text-xs text-neon-cyan">{skill.level}%</span>
                       </div>
-                      <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
+                      <div className="h-2 bg-white/10 rounded-full overflow-hidden">
                         <motion.div
-                          className="h-full bg-gradient-to-r from-blue-500 to-purple-500"
+                          className="h-full bg-gradient-to-r from-neon-cyan to-neon-purple"
                           initial={{ width: 0 }}
                           animate={{ width: `${skill.level}%` }}
                           transition={{ duration: 1, delay: 0.3 + idx * 0.1 }}
@@ -460,13 +460,13 @@ export function DynamicGamifiedProfile() {
                 <TabsContent value="experience" className="space-y-4">
                   {profile.experienceDetails && profile.experienceDetails.length > 0 ? (
                     profile.experienceDetails.map((exp, idx) => (
-                      <div key={idx} className="border-l-2 border-blue-500 pl-4">
-                        <h4 className="font-bold text-blue-300">{exp.role}</h4>
-                        <p className="text-sm text-blue-200">{exp.company}</p>
-                        <p className="text-xs text-gray-400">
+                      <div key={idx} className="border-l-2 border-neon-cyan pl-4">
+                        <h4 className="font-bold text-neon-cyan">{exp.role}</h4>
+                        <p className="text-sm text-white/85">{exp.company}</p>
+                        <p className="text-xs text-white/60">
                           {exp.startDate} - {exp.current ? 'Present' : exp.endDate}
                         </p>
-                        <p className="text-sm text-gray-300 mt-2">{exp.description}</p>
+                        <p className="text-sm text-white/75 mt-2">{exp.description}</p>
                       </div>
                     ))
                   ) : (
@@ -508,16 +508,16 @@ export function DynamicGamifiedProfile() {
                           <Badge
                             className={`${
                               project.status === 'completed'
-                                ? 'bg-green-500/20 text-green-300'
+                                ? 'bg-neon-emerald/20 text-neon-emerald border-neon-emerald/30'
                                 : project.status === 'in-progress'
-                                ? 'bg-blue-500/20 text-blue-300'
-                                : 'bg-gray-500/20 text-gray-300'
+                                ? 'bg-neon-cyan/20 text-neon-cyan border-neon-cyan/30'
+                                : 'bg-white/10 text-white/65 border-white/20'
                             }`}
                           >
                             {project.status}
                           </Badge>
                         </div>
-                        <p className="text-sm text-gray-300 mt-2">
+                        <p className="text-sm text-white/75 mt-2">
                           {project.description}
                         </p>
                         <div className="flex flex-wrap gap-1 mt-2">

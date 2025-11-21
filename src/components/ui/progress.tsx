@@ -12,15 +12,18 @@ const Progress = React.forwardRef<
   <ProgressPrimitive.Root
     ref={ref}
     className={cn(
-      'relative h-2 w-full overflow-hidden rounded-full bg-primary/20',
+      'relative h-3 w-full overflow-hidden rounded-full bg-white/10 border border-white/20 backdrop-blur-lg',
       className
     )}
     {...props}
   >
     <ProgressPrimitive.Indicator
-      className="h-full w-full flex-1 bg-primary transition-all duration-300 ease-in-out"
+      className="h-full w-full flex-1 bg-gradient-to-r from-neon-cyan via-neon-purple to-neon-emerald transition-all duration-500 ease-out shadow-neon-cyan relative overflow-hidden"
       style={{ transform: `translateX(-${100 - (value || 0)}%)` }}
-    />
+    >
+      {/* Shimmer effect */}
+      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-shimmer" style={{ backgroundSize: '200% 100%' }} />
+    </ProgressPrimitive.Indicator>
   </ProgressPrimitive.Root>
 ));
 Progress.displayName = ProgressPrimitive.Root.displayName;

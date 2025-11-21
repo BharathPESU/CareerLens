@@ -130,20 +130,20 @@ export default function CareerNavigatorPage() {
   });
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-950 via-purple-950 to-blue-950 text-white">
-      {/* Header */}
-      <div className="border-b border-gray-800 bg-gray-900/50 backdrop-blur-xl">
+    <div className="min-h-screen bg-background text-white">
+      {/* Header - Glassmorphism */}
+      <div className="border-b border-white/[0.16] bg-white/[0.08] backdrop-blur-xl">
         <div className="max-w-[1920px] mx-auto px-8 py-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <div className="p-3 rounded-xl bg-gradient-to-br from-purple-600 to-blue-600">
-                <GraduationCap className="w-8 h-8" />
+              <div className="p-3 rounded-2xl bg-gradient-to-br from-neon-purple to-neon-cyan shadow-neon-purple animate-glow">
+                <GraduationCap className="w-8 h-8 text-white" />
               </div>
               <div>
-                <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">
+                <h1 className="text-3xl font-bold text-glow-purple">
                   Career Path Navigator
                 </h1>
-                <p className="text-gray-400 text-sm mt-1">
+                <p className="text-white/65 text-sm mt-1">
                   AI-powered journey from Grade 8 to Dream Career
                 </p>
               </div>
@@ -151,7 +151,7 @@ export default function CareerNavigatorPage() {
             {treeData && (
               <button
                 onClick={handleExportPDF}
-                className="flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 font-semibold transition-all shadow-lg"
+                className="flex items-center gap-2 px-6 py-3 rounded-full bg-white/[0.1] backdrop-blur-lg border border-white/20 hover:bg-white/[0.2] hover:scale-105 active:scale-95 font-semibold transition-all shadow-neon-emerald"
               >
                 <Download className="w-5 h-5" />
                 Export PDF
@@ -162,32 +162,32 @@ export default function CareerNavigatorPage() {
       </div>
 
       <div className="flex h-[calc(100vh-100px)]">
-        {/* Left Sidebar - Controls */}
-        <div className="w-[350px] border-r border-gray-800 bg-gray-900/30 backdrop-blur-sm p-6 overflow-y-auto">
+        {/* Left Sidebar - Glass Controls */}
+        <div className="w-[350px] border-r border-white/[0.16] bg-white/[0.05] backdrop-blur-xl p-6 overflow-y-auto">
           <div className="space-y-6">
-            {/* Grade Selection */}
+            {/* Grade Selection - Glass Input */}
             <div>
-              <label className="block text-sm font-semibold text-gray-300 mb-3">
-                <Sparkles className="w-4 h-4 inline mr-2" />
+              <label className="block text-sm font-semibold text-white/85 mb-3">
+                <Sparkles className="w-4 h-4 inline mr-2 text-neon-purple" />
                 Current Education Level
               </label>
               <select
                 value={currentGrade}
                 onChange={(e) => setCurrentGrade(e.target.value)}
-                className="w-full px-4 py-3 rounded-xl bg-gray-800 border border-gray-700 text-white focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 outline-none transition-all"
+                className="w-full px-4 py-3 rounded-2xl bg-white/[0.08] backdrop-blur-lg border border-white/20 text-white focus:border-neon-purple focus:ring-2 focus:ring-neon-purple/20 outline-none transition-all"
               >
-                <option value="">Select your level...</option>
+                <option value="" className="bg-gray-900">Select your level...</option>
                 {GRADE_OPTIONS.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
+                  <option key={opt.value} value={opt.value} className="bg-gray-900">
                     {opt.label}
                   </option>
                 ))}
               </select>
             </div>
 
-            {/* Interests */}
+            {/* Interests - Glass Pills */}
             <div>
-              <label className="block text-sm font-semibold text-gray-300 mb-3">
+              <label className="block text-sm font-semibold text-white/85 mb-3">
                 Your Interests (select multiple)
               </label>
               <div className="flex flex-wrap gap-2">
@@ -201,10 +201,10 @@ export default function CareerNavigatorPage() {
                           : [...prev, interest]
                       );
                     }}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                    className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all backdrop-blur-lg ${
                       interests.includes(interest)
-                        ? 'bg-purple-600 text-white'
-                        : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+                        ? 'bg-neon-purple/20 text-neon-purple border border-neon-purple/30 shadow-neon-purple/20 shadow-sm'
+                        : 'bg-white/[0.08] text-white/65 hover:bg-white/[0.12] border border-white/10'
                     }`}
                   >
                     {interest}
@@ -213,9 +213,9 @@ export default function CareerNavigatorPage() {
               </div>
             </div>
 
-            {/* Region */}
+            {/* Region - Glass Input */}
             <div>
-              <label className="block text-sm font-semibold text-gray-300 mb-3">
+              <label className="block text-sm font-semibold text-white/85 mb-3">
                 Region (optional)
               </label>
               <input
@@ -223,15 +223,15 @@ export default function CareerNavigatorPage() {
                 value={region}
                 onChange={(e) => setRegion(e.target.value)}
                 placeholder="e.g., Karnataka, Delhi"
-                className="w-full px-4 py-3 rounded-xl bg-gray-800 border border-gray-700 text-white placeholder-gray-500 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 outline-none transition-all"
+                className="w-full px-4 py-3 rounded-2xl bg-white/[0.08] backdrop-blur-lg border border-white/20 text-white placeholder-white/45 focus:border-neon-cyan focus:ring-2 focus:ring-neon-cyan/20 outline-none transition-all"
               />
             </div>
 
-            {/* Generate Button */}
+            {/* Generate Button - Neon Glass */}
             <button
               onClick={handleGenerate}
               disabled={loading || !currentGrade}
-              className="w-full flex items-center justify-center gap-3 px-6 py-4 rounded-xl bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 disabled:from-gray-700 disabled:to-gray-700 disabled:cursor-not-allowed font-bold text-lg transition-all shadow-lg hover:shadow-purple-500/50"
+              className="w-full flex items-center justify-center gap-3 px-6 py-4 rounded-full bg-gradient-to-r from-neon-purple to-neon-cyan hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed font-bold text-lg transition-all shadow-neon-purple border-2 border-white/20"
             >
               {loading ? (
                 <>
@@ -247,25 +247,25 @@ export default function CareerNavigatorPage() {
               )}
             </button>
 
-            {/* Search & Filter (show after generation) */}
+            {/* Search & Filter (show after generation) - Glass Controls */}
             {treeData && (
               <>
-                <div className="pt-6 border-t border-gray-800">
+                <div className="pt-6 border-t border-white/[0.12]">
                   <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-white/50" />
                     <input
                       type="text"
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       placeholder="Search nodes..."
-                      className="w-full pl-10 pr-4 py-3 rounded-xl bg-gray-800 border border-gray-700 text-white placeholder-gray-500 focus:border-purple-500 outline-none"
+                      className="w-full pl-10 pr-4 py-3 rounded-2xl bg-white/[0.08] backdrop-blur-lg border border-white/20 text-white placeholder-white/45 focus:border-neon-cyan focus:ring-2 focus:ring-neon-cyan/20 outline-none transition-all"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-gray-300 mb-3">
-                    <Filter className="w-4 h-4 inline mr-2" />
+                  <label className="block text-sm font-semibold text-white/85 mb-3">
+                    <Filter className="w-4 h-4 inline mr-2 text-neon-cyan" />
                     Filter by Type
                   </label>
                   <div className="flex flex-wrap gap-2">
@@ -273,10 +273,10 @@ export default function CareerNavigatorPage() {
                       <button
                         key={type}
                         onClick={() => setFilterType(type)}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-medium capitalize transition-all ${
+                        className={`px-3 py-1.5 rounded-full text-xs font-medium capitalize transition-all backdrop-blur-lg ${
                           filterType === type
-                            ? 'bg-blue-600 text-white'
-                            : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+                            ? 'bg-neon-cyan/20 text-neon-cyan border border-neon-cyan/30 shadow-neon-cyan/20 shadow-sm'
+                            : 'bg-white/[0.08] text-white/65 hover:bg-white/[0.12] border border-white/10'
                         }`}
                       >
                         {type}
@@ -285,16 +285,16 @@ export default function CareerNavigatorPage() {
                   </div>
                 </div>
 
-                {/* Insights */}
+                {/* Insights - Glass Panel */}
                 {treeData.insights && treeData.insights.length > 0 && (
-                  <div className="bg-gradient-to-br from-purple-900/30 to-blue-900/30 rounded-xl p-4 border border-purple-500/30">
-                    <h3 className="text-sm font-semibold mb-2 flex items-center gap-2">
-                      <Sparkles className="w-4 h-4 text-yellow-400" />
+                  <div className="bg-gradient-to-br from-neon-purple/10 to-neon-cyan/10 rounded-2xl p-4 border border-white/20 backdrop-blur-xl shadow-glass">
+                    <h3 className="text-sm font-semibold mb-2 flex items-center gap-2 text-white/90">
+                      <Sparkles className="w-4 h-4 text-neon-emerald" />
                       AI Insights
                     </h3>
                     <ul className="space-y-2">
                       {treeData.insights.map((insight, i) => (
-                        <li key={i} className="text-xs text-gray-300 leading-relaxed">
+                        <li key={i} className="text-xs text-white/75 leading-relaxed">
                           • {insight}
                         </li>
                       ))}
@@ -311,15 +311,17 @@ export default function CareerNavigatorPage() {
           {!treeData ? (
             <div className="h-full flex items-center justify-center">
               <div className="text-center max-w-md">
-                <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-br from-purple-600/20 to-blue-600/20 flex items-center justify-center">
-                  <GraduationCap className="w-10 h-10 text-purple-400" />
+                <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-br from-neon-purple/20 to-neon-cyan/20 backdrop-blur-xl border-2 border-white/20 flex items-center justify-center shadow-neon-purple">
+                  <GraduationCap className="w-10 h-10 text-neon-purple" />
                 </div>
-                <h2 className="text-2xl font-bold mb-3">Ready to Explore Your Future?</h2>
-                <p className="text-gray-400 mb-6">
+                <h2 className="text-2xl font-bold mb-3 bg-gradient-to-r from-neon-cyan to-neon-purple bg-clip-text text-transparent">
+                  Ready to Explore Your Future?
+                </h2>
+                <p className="text-white/65 mb-6">
                   Select your education level and interests, then click Generate to see your
                   personalized career pathway tree with AI-powered recommendations.
                 </p>
-                <div className="flex items-center justify-center gap-4 text-sm text-gray-500">
+                <div className="flex items-center justify-center gap-4 text-sm text-white/50">
                   <span>🎯 Smart Scoring</span>
                   <span>💼 Career Paths</span>
                   <span>📚 Courses & Exams</span>

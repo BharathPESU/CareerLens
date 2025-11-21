@@ -10,11 +10,12 @@ export default function ProfilePage() {
 
   return (
     <div>
-      {/* Toggle Button */}
+      {/* Toggle Button - Glassmorphism */}
       <div className="fixed top-20 right-6 z-50">
         <Button
           onClick={() => setMode(mode === 'view' ? 'edit' : 'view')}
-          className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+          variant="neon"
+          className="shadow-neon-purple"
         >
           {mode === 'view' ? (
             <>

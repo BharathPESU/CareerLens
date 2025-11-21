@@ -126,6 +126,25 @@ export function DynamicDashboard() {
 
   useEffect(() => {
     if (profile) {
+      // Check if we have a cached message and if it's still valid (within 1 hour)
+      const cachedData = localStorage.getItem('copilot_cache');
+      if (cachedData) {
+        try {
+          const { message, actionUrl, actionLabel, timestamp } = JSON.parse(cachedData);
+          const oneHour = 60 * 60 * 1000;
+          if (Date.now() - timestamp < oneHour) {
+            // Use cached data
+            setCopilotMessage(message);
+            setActionUrl(actionUrl);
+            setActionLabel(actionLabel);
+            return;
+          }
+        } catch (e) {
+          // Invalid cache, continue to fetch
+        }
+      }
+
+      // Only fetch if no valid cache
       fetchCopilotMessage(profile);
     }
   }, [profile]);
@@ -150,6 +169,16 @@ export function DynamicDashboard() {
 
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
+
+        // Handle rate limiting specifically
+        if (res.status === 429) {
+          setCopilotMessage("I'm taking a short break! The AI is rate-limited right now. Try the 'Get Guidance' button in a few minutes, or explore the AI Career Hub for recommendations.");
+          setActionUrl('/ai-career-hub');
+          setActionLabel('Explore Career Hub');
+          setIsCopilotLoading(false);
+          return;
+        }
+
         console.error('Copilot API Error Details:', errorData);
         throw new Error(`API Error: ${res.status} - ${errorData.details || 'Unknown error'}`);
       }
@@ -158,20 +187,41 @@ export function DynamicDashboard() {
       console.log('Copilot API Response:', data);
 
       if (data.message) {
-        setCopilotMessage(data.message);
-        setActionUrl(data.actionUrl || '/ai-career-hub');
-        setActionLabel(data.actionLabel || 'Explore Career Hub');
+        const message = data.message;
+        const actionUrl = data.actionUrl || '/ai-career-hub';
+        const actionLabel = data.actionLabel || 'Explore Career Hub';
+
+        setCopilotMessage(message);
+        setActionUrl(actionUrl);
+        setActionLabel(actionLabel);
+
+        // Cache the response for 1 hour
+        localStorage.setItem('copilot_cache', JSON.stringify({
+          message,
+          actionUrl,
+          actionLabel,
+          timestamp: Date.now()
+        }));
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to fetch copilot message', err);
-      // Fallback UI if API fails
-      setCopilotMessage("I'm ready to help you advance your career! Check out the AI Career Hub for personalized recommendations.");
-      setActionUrl('/ai-career-hub');
-      setActionLabel('Open Career Hub');
+
+      // Check if it's a rate limit error in the message
+      if (err.message?.includes('429') || err.message?.includes('Too Many')) {
+        setCopilotMessage("The AI Copilot is experiencing high demand. Please try again in a few minutes or explore the Career Hub!");
+        setActionUrl('/ai-career-hub');
+        setActionLabel('Explore Career Hub');
+      } else {
+        // Fallback UI for other errors
+        setCopilotMessage("I'm ready to help you advance your career! Check out the AI Career Hub for personalized recommendations.");
+        setActionUrl('/ai-career-hub');
+        setActionLabel('Open Career Hub');
+      }
     } finally {
       setIsCopilotLoading(false);
     }
   };
+
 
   const handleCompleteGoal = async (goalId: string) => {
     if (!user || !db) return;
@@ -1091,29 +1141,37 @@ export function DynamicDashboard() {
         )}
       </AnimatePresence>
 
-      {/* Floating AI Button - Hidden on Mobile */}
+      {/* Floating AI Copilot Button - Neon Glass FAB */}
       <motion.button
-        className="fixed bottom-8 right-8 w-16 h-16 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center shadow-2xl z-50 hidden lg:flex"
-        whileHover={{ scale: 1.1 }}
-        whileTap={{ scale: 0.9 }}
+        className="fixed bottom-8 right-8 w-16 h-16 lg:w-20 lg:h-20 rounded-full bg-gradient-to-br from-neon-cyan via-neon-purple to-neon-emerald flex items-center justify-center shadow-neon-cyan z-50 hidden lg:flex border-2 border-white/20 backdrop-blur-lg"
+        whileHover={{ scale: 1.15, rotate: 5 }}
+        whileTap={{ scale: 0.9, rotate: -5 }}
         onClick={() => setShowAIChat(!showAIChat)}
         animate={{
           boxShadow: [
-            '0 0 30px rgba(34, 211, 238, 0.5)',
-            '0 0 60px rgba(34, 211, 238, 0.8)',
-            '0 0 30px rgba(34, 211, 238, 0.5)',
+            '0 0 30px rgba(0, 229, 255, 0.6)',
+            '0 0 50px rgba(165, 124, 255, 0.8)',
+            '0 0 30px rgba(0, 229, 255, 0.6)',
           ],
         }}
-        transition={{ duration: 2, repeat: Infinity }}
+        transition={{ duration: 3, repeat: Infinity }}
       >
-        <Brain className="w-8 h-8 text-white" />
+        <Brain className="w-8 h-8 lg:w-10 lg:h-10 text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.8)]" />
         <motion.div
-          className="absolute inset-0 rounded-full border-2 border-cyan-400"
+          className="absolute inset-0 rounded-full border-2 border-neon-cyan"
           animate={{
-            scale: [1, 1.5, 1],
+            scale: [1, 1.6, 1],
             opacity: [0.8, 0, 0.8],
           }}
-          transition={{ duration: 2, repeat: Infinity }}
+          transition={{ duration: 2.5, repeat: Infinity }}
+        />
+        <motion.div
+          className="absolute inset-0 rounded-full border-2 border-neon-purple"
+          animate={{
+            scale: [1, 1.4, 1],
+            opacity: [0.6, 0, 0.6],
+          }}
+          transition={{ duration: 2, repeat: Infinity, delay: 0.5 }}
         />
       </motion.button>
     </div >

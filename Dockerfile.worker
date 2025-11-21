@@ -1,0 +1,21 @@
+# Worker Dockerfile
+FROM node:18-alpine
+
+WORKDIR /app
+
+# Install dependencies
+COPY package*.json ./
+RUN npm ci --only=production
+
+# Copy source
+COPY . .
+
+# Build TypeScript
+RUN npm run build
+
+# Run worker
+CMD ["node", "dist/lib/queue/worker.js"]
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD node -e "require('ioredis').createClient(process.env.REDIS_HOST).ping()"

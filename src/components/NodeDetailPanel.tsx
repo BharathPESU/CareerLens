@@ -83,18 +83,18 @@ export default function NodeDetailPanel({
         animate={{ x: 0, opacity: 1 }}
         exit={{ x: 400, opacity: 0 }}
         transition={{ type: 'spring', damping: 25 }}
-        className="fixed right-0 top-0 h-full w-[400px] bg-gradient-to-br from-gray-900 via-purple-900/30 to-blue-900/30 backdrop-blur-xl border-l border-gray-700 shadow-2xl overflow-y-auto z-50"
+        className="fixed right-0 top-0 h-full w-[400px] bg-white/[0.08] backdrop-blur-xl border-l border-white/[0.16] shadow-glass overflow-y-auto z-50"
       >
-        {/* Header */}
-        <div className="sticky top-0 bg-gray-900/80 backdrop-blur-sm border-b border-gray-700 p-6 flex items-start justify-between">
+        {/* Header - Glass */}
+        <div className="sticky top-0 bg-white/[0.08] backdrop-blur-xl border-b border-white/[0.12] p-6 flex items-start justify-between">
           <div className="flex-1">
             <h2 className="text-2xl font-bold text-white mb-2">{node.label}</h2>
             <div className="flex items-center gap-3">
-              <span className="px-3 py-1 rounded-full text-xs font-semibold bg-purple-500/20 text-purple-300 border border-purple-500/30">
+              <span className="px-3 py-1 rounded-full text-xs font-semibold bg-neon-purple/20 text-neon-purple border border-neon-purple/30 shadow-neon-purple/20 shadow-sm">
                 {node.type}
               </span>
               {node.score && (
-                <div className="flex items-center gap-1 text-yellow-400">
+                <div className="flex items-center gap-1 text-neon-emerald">
                   <Star className="w-4 h-4 fill-current" />
                   <span className="text-sm font-semibold">{node.score}/100</span>
                 </div>
@@ -103,22 +103,22 @@ export default function NodeDetailPanel({
           </div>
           <button
             onClick={onClose}
-            className="p-2 rounded-lg hover:bg-gray-800 transition-colors"
+            className="p-2 rounded-lg hover:bg-white/[0.12] transition-all hover:scale-110"
           >
-            <X className="w-5 h-5 text-gray-400" />
+            <X className="w-5 h-5 text-white/70" />
           </button>
         </div>
 
-        {/* Content */}
+        {/* Content - Glass Cards */}
         <div className="p-6 space-y-6">
           {/* Summary */}
           {node.summary && (
-            <div className="bg-gray-800/50 rounded-xl p-4 border border-gray-700">
-              <h3 className="text-sm font-semibold text-gray-400 mb-2 flex items-center gap-2">
-                <BookOpen className="w-4 h-4" />
+            <div className="bg-white/[0.08] backdrop-blur-lg rounded-2xl p-4 border border-white/20 hover:scale-[1.02] transition-transform">
+              <h3 className="text-sm font-semibold text-white/85 mb-2 flex items-center gap-2">
+                <BookOpen className="w-4 h-4 text-neon-cyan" />
                 Overview
               </h3>
-              <p className="text-white text-sm leading-relaxed">{node.summary}</p>
+              <p className="text-white/75 text-sm leading-relaxed">{node.summary}</p>
             </div>
           )}
 
@@ -126,44 +126,44 @@ export default function NodeDetailPanel({
           {node.metadata && (
             <div className="grid grid-cols-2 gap-4">
               {node.metadata.durationYears && (
-                <div className="bg-gray-800/50 rounded-xl p-4 border border-gray-700">
-                  <Clock className="w-5 h-5 text-blue-400 mb-2" />
+                <div className="bg-white/[0.08] backdrop-blur-lg rounded-2xl p-4 border border-white/20 hover:scale-105 transition-transform">
+                  <Clock className="w-5 h-5 text-neon-cyan mb-2" />
                   <div className="text-xl font-bold text-white">
                     {node.metadata.durationYears}
-                    <span className="text-sm text-gray-400 ml-1">years</span>
+                    <span className="text-sm text-white/65 ml-1">years</span>
                   </div>
-                  <div className="text-xs text-gray-400">Duration</div>
+                  <div className="text-xs text-white/50">Duration</div>
                 </div>
               )}
 
               {node.metadata.salaryRange && (
-                <div className="bg-gray-800/50 rounded-xl p-4 border border-gray-700">
-                  <DollarSign className="w-5 h-5 text-green-400 mb-2" />
+                <div className="bg-white/[0.08] backdrop-blur-lg rounded-2xl p-4 border border-white/20 hover:scale-105 transition-transform">
+                  <DollarSign className="w-5 h-5 text-neon-emerald mb-2" />
                   <div className="text-sm font-bold text-white">
                     {formatSalary(node.metadata.salaryRange.min)} -{' '}
                     {formatSalary(node.metadata.salaryRange.max)}
                   </div>
-                  <div className="text-xs text-gray-400">Salary Range</div>
+                  <div className="text-xs text-white/50">Salary Range</div>
                 </div>
               )}
 
               {node.metadata.difficulty && (
-                <div className="bg-gray-800/50 rounded-xl p-4 border border-gray-700">
-                  <TrendingUp className="w-5 h-5 text-yellow-400 mb-2" />
+                <div className="bg-white/[0.08] backdrop-blur-lg rounded-2xl p-4 border border-white/20 hover:scale-105 transition-transform">
+                  <TrendingUp className="w-5 h-5 text-neon-purple mb-2" />
                   <div className={`text-sm font-bold capitalize ${difficultyColor}`}>
                     {node.metadata.difficulty}
                   </div>
-                  <div className="text-xs text-gray-400">Difficulty</div>
+                  <div className="text-xs text-white/50">Difficulty</div>
                 </div>
               )}
 
               {node.metadata.demand && (
-                <div className="bg-gray-800/50 rounded-xl p-4 border border-gray-700">
-                  <Briefcase className="w-5 h-5 text-purple-400 mb-2" />
+                <div className="bg-white/[0.08] backdrop-blur-lg rounded-2xl p-4 border border-white/20 hover:scale-105 transition-transform">
+                  <Briefcase className="w-5 h-5 text-neon-purple mb-2" />
                   <div className={`text-sm font-bold capitalize ${demandColor}`}>
                     {node.metadata.demand}
                   </div>
-                  <div className="text-xs text-gray-400">Market Demand</div>
+                  <div className="text-xs text-white/50">Market Demand</div>
                 </div>
               )}
             </div>
@@ -171,16 +171,16 @@ export default function NodeDetailPanel({
 
           {/* Exams */}
           {node.actions?.exams && node.actions.exams.length > 0 && (
-            <div className="bg-gray-800/50 rounded-xl p-4 border border-gray-700">
-              <h3 className="text-sm font-semibold text-gray-400 mb-3 flex items-center gap-2">
-                <Award className="w-4 h-4" />
+            <div className="bg-white/[0.08] backdrop-blur-lg rounded-2xl p-4 border border-white/20">
+              <h3 className="text-sm font-semibold text-white/85 mb-3 flex items-center gap-2">
+                <Award className="w-4 h-4 text-neon-emerald" />
                 Recommended Exams
               </h3>
               <div className="flex flex-wrap gap-2">
                 {node.actions.exams.map((exam, i) => (
                   <span
                     key={i}
-                    className="px-3 py-1.5 rounded-lg bg-red-500/20 text-red-300 text-xs font-medium border border-red-500/30"
+                    className="px-3 py-1.5 rounded-full bg-red-500/20 text-red-300 text-xs font-medium border border-red-500/30"
                   >
                     {exam}
                   </span>
@@ -191,16 +191,16 @@ export default function NodeDetailPanel({
 
           {/* Courses */}
           {node.actions?.courses && node.actions.courses.length > 0 && (
-            <div className="bg-gray-800/50 rounded-xl p-4 border border-gray-700">
-              <h3 className="text-sm font-semibold text-gray-400 mb-3 flex items-center gap-2">
-                <BookOpen className="w-4 h-4" />
+            <div className="bg-white/[0.08] backdrop-blur-lg rounded-2xl p-4 border border-white/20">
+              <h3 className="text-sm font-semibold text-white/85 mb-3 flex items-center gap-2">
+                <BookOpen className="w-4 h-4 text-neon-cyan" />
                 Recommended Courses
               </h3>
               <div className="space-y-2">
                 {node.actions.courses.map((course, i) => (
                   <div
                     key={i}
-                    className="px-3 py-2 rounded-lg bg-blue-500/10 text-blue-300 text-sm border border-blue-500/20"
+                    className="px-3 py-2 rounded-xl bg-neon-cyan/10 text-neon-cyan text-sm border border-neon-cyan/20 backdrop-blur-lg"
                   >
                     {course}
                   </div>
@@ -211,31 +211,31 @@ export default function NodeDetailPanel({
 
           {/* Certifications */}
           {node.actions?.certifications && node.actions.certifications.length > 0 && (
-            <div className="bg-gray-800/50 rounded-xl p-4 border border-gray-700">
-              <h3 className="text-sm font-semibold text-gray-400 mb-3 flex items-center gap-2">
-                <Award className="w-4 h-4" />
+            <div className="bg-white/[0.08] backdrop-blur-lg rounded-2xl p-4 border border-white/20">
+              <h3 className="text-sm font-semibold text-white/85 mb-3 flex items-center gap-2">
+                <Award className="w-4 h-4 text-neon-purple" />
                 Certifications
               </h3>
               <div className="space-y-3">
                 {node.actions.certifications.map((cert, i) => (
                   <div
                     key={i}
-                    className="flex items-start justify-between p-3 rounded-lg bg-purple-500/10 border border-purple-500/20"
+                    className="flex items-start justify-between p-3 rounded-xl bg-neon-purple/10 border border-neon-purple/20 backdrop-blur-lg hover:scale-[1.02] transition-transform"
                   >
                     <div className="flex-1">
                       <div className="text-sm font-medium text-white mb-1">
                         {cert.title}
                       </div>
-                      <div className="text-xs text-gray-400">{cert.platform}</div>
+                      <div className="text-xs text-white/60">{cert.platform}</div>
                     </div>
                     {cert.url && (
                       <a
                         href={cert.url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="p-1.5 rounded-lg hover:bg-purple-500/20 transition-colors"
+                        className="p-1.5 rounded-lg hover:bg-neon-purple/20 transition-all hover:scale-110"
                       >
-                        <ExternalLink className="w-4 h-4 text-purple-400" />
+                        <ExternalLink className="w-4 h-4 text-neon-purple" />
                       </a>
                     )}
                   </div>
@@ -246,13 +246,13 @@ export default function NodeDetailPanel({
 
           {/* Sources */}
           {node.sources && node.sources.length > 0 && (
-            <div className="bg-gray-800/50 rounded-xl p-4 border border-gray-700">
-              <h3 className="text-sm font-semibold text-gray-400 mb-2">Sources</h3>
+            <div className="bg-white/[0.08] backdrop-blur-lg rounded-2xl p-4 border border-white/20">
+              <h3 className="text-sm font-semibold text-white/85 mb-2">Sources</h3>
               <div className="flex flex-wrap gap-2">
                 {node.sources.map((source, i) => (
                   <span
                     key={i}
-                    className="px-2 py-1 rounded text-xs text-gray-400 bg-gray-700/50"
+                    className="px-2 py-1 rounded-full text-xs text-white/65 bg-white/[0.06] border border-white/10"
                   >
                     {source}
                   </span>
@@ -261,16 +261,16 @@ export default function NodeDetailPanel({
             </div>
           )}
 
-          {/* Actions */}
-          <div className="space-y-3 pt-4 border-t border-gray-700">
+          {/* Actions - Neon Glass Buttons */}
+          <div className="space-y-3 pt-4 border-t border-white/[0.12]">
             <button
               onClick={() => onAddToRoadmap && onAddToRoadmap(node.id)}
-              className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-semibold transition-all shadow-lg hover:shadow-purple-500/50"
+              className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-full bg-gradient-to-r from-neon-purple to-neon-cyan hover:scale-105 active:scale-95 text-white font-semibold transition-all shadow-neon-purple border-2 border-white/20"
             >
               <Plus className="w-5 h-5" />
               Add to My Roadmap
             </button>
-            <button className="w-full px-4 py-3 rounded-xl bg-gray-800 hover:bg-gray-700 text-white font-semibold transition-colors border border-gray-700">
+            <button className="w-full px-4 py-3 rounded-full bg-white/[0.08] hover:bg-white/[0.12] text-white font-semibold transition-all border border-white/20 backdrop-blur-lg hover:scale-105 active:scale-95">
               Schedule Mock Test
             </button>
           </div>

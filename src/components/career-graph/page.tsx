@@ -152,7 +152,7 @@ export function CareerGraphPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#090E24] via-[#1A1F40] to-[#0F1629] p-4 md:p-8">
+    <div className="min-h-screen bg-background p-4 md:p-8">
       <div className="max-w-7xl mx-auto space-y-8">
         {/* Header */}
         <motion.div
@@ -163,12 +163,12 @@ export function CareerGraphPage() {
           <div>
             <h1 className="text-4xl font-bold text-white mb-2 flex items-center gap-3">
               <motion.div
-                className="p-3 rounded-xl bg-gradient-to-br from-violet-600 to-purple-700 shadow-lg shadow-violet-500/50"
+                className="p-3 rounded-xl bg-gradient-to-br from-neon-purple to-neon-cyan shadow-lg shadow-neon-purple/50"
                 animate={{
                   boxShadow: [
-                    '0 0 20px rgba(139, 92, 246, 0.5)',
-                    '0 0 40px rgba(139, 92, 246, 0.8)',
-                    '0 0 20px rgba(139, 92, 246, 0.5)',
+                    '0 0 20px rgba(165, 124, 255, 0.5)',
+                    '0 0 40px rgba(165, 124, 255, 0.8)',
+                    '0 0 20px rgba(165, 124, 255, 0.5)',
                   ],
                 }}
                 transition={{ duration: 2, repeat: Infinity }}
@@ -177,7 +177,7 @@ export function CareerGraphPage() {
               </motion.div>
               Career Development Graph
             </h1>
-            <p className="text-gray-400">
+            <p className="text-white/65">
               Your adaptive learning journey, visualized and powered by AI
             </p>
           </div>
@@ -198,7 +198,8 @@ export function CareerGraphPage() {
             <Button
               size="lg"
               onClick={handleShare}
-              className="bg-gradient-to-r from-violet-600 to-purple-700 hover:from-violet-700 hover:to-purple-800"
+              variant="neon"
+              className="shadow-neon-purple"
             >
               <Share2 className="w-4 h-4 mr-2" />
               Share
@@ -208,24 +209,24 @@ export function CareerGraphPage() {
 
         {/* Main Content */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="bg-black/20 border border-white/10 p-1">
+          <TabsList className="bg-white/[0.08] backdrop-blur-xl border border-white/20 p-1">
             <TabsTrigger
               value="overview"
-              className="data-[state=active]:bg-violet-600 data-[state=active]:text-white"
+              className="data-[state=active]:bg-neon-purple/30 data-[state=active]:text-white data-[state=active]:shadow-neon-purple"
             >
               <Sparkles className="w-4 h-4 mr-2" />
               Overview
             </TabsTrigger>
             <TabsTrigger
               value="heatmap"
-              className="data-[state=active]:bg-violet-600 data-[state=active]:text-white"
+              className="data-[state=active]:bg-neon-cyan/30 data-[state=active]:text-white data-[state=active]:shadow-neon-cyan"
             >
               <Activity className="w-4 h-4 mr-2" />
               Activity Heatmap
             </TabsTrigger>
             <TabsTrigger
               value="skills"
-              className="data-[state=active]:bg-violet-600 data-[state=active]:text-white"
+              className="data-[state=active]:bg-neon-emerald/30 data-[state=active]:text-white data-[state=active]:shadow-neon-emerald"
             >
               Skills Network
             </TabsTrigger>

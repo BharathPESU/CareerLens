@@ -54,7 +54,6 @@ async function summarizeWithGemini(combinedData: any) {
     
     const prompt = `You are an expert career analyst analyzing REAL-TIME data from multiple sources including Google Search results, Reddit discussions, and news articles.
     
-    Data Context: ${JSON.stringify(combinedData).substring(0, 30000)}... (truncated)
 
     IMPORTANT: Extract REAL data from the content provided. Do not make up numbers or percentages.
 

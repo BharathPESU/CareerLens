@@ -106,7 +106,7 @@ export function DynamicGamifiedProfile() {
   const lockedAchievements = profile.achievements.filter((a) => !a.unlocked).slice(0, 2);
 
   return (
-    <div className="min-h-screen bg-background text-white relative overflow-hidden">
+    <div className="min-h-screen bg-transparent text-white relative overflow-hidden z-10">
       {/* Animated Background */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         {[...Array(20)].map((_, i) => (
@@ -140,7 +140,7 @@ export function DynamicGamifiedProfile() {
           >
             Career Dashboard
           </motion.h1>
-          <Button asChild variant="glass">
+          <Button asChild variant="neon">
             <Link href="/profile/edit">
               <Edit className="w-4 h-4 mr-2" />
               Edit Profile
@@ -338,8 +338,8 @@ export function DynamicGamifiedProfile() {
                     {profile.analytics.resumeScore < 70
                       ? "Let's work on improving your resume score to unlock more opportunities!"
                       : profile.analytics.totalProjects === 0
-                      ? 'Ready to start your first project? Check out the AI-suggested projects!'
-                      : `Great progress, ${profile.name?.split(' ')[0]}! Keep building your skills.`}
+                        ? 'Ready to start your first project? Check out the AI-suggested projects!'
+                        : `Great progress, ${profile.name?.split(' ')[0]}! Keep building your skills.`}
                   </p>
                 </div>
               </div>
@@ -506,13 +506,12 @@ export function DynamicGamifiedProfile() {
                         <div className="flex items-start justify-between">
                           <h4 className="font-bold text-green-300">{project.title}</h4>
                           <Badge
-                            className={`${
-                              project.status === 'completed'
-                                ? 'bg-neon-emerald/20 text-neon-emerald border-neon-emerald/30'
-                                : project.status === 'in-progress'
+                            className={`${project.status === 'completed'
+                              ? 'bg-neon-emerald/20 text-neon-emerald border-neon-emerald/30'
+                              : project.status === 'in-progress'
                                 ? 'bg-neon-cyan/20 text-neon-cyan border-neon-cyan/30'
                                 : 'bg-white/10 text-white/65 border-white/20'
-                            }`}
+                              }`}
                           >
                             {project.status}
                           </Badge>

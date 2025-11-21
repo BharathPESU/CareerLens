@@ -97,9 +97,8 @@ export function CareerGraphPage() {
 
     const shareText = `Check out my career progress! 🚀\n\n📊 Readiness Score: ${Math.round(
       careerGraph.readinessScore
-    )}%\n🎯 Skills Mastered: ${careerGraph.skills.length}\n💼 Target Role: ${
-      careerGraph.targetRole || 'Exploring'
-    }\n\nBuilding my career with CareerLens AI!`;
+    )}%\n🎯 Skills Mastered: ${careerGraph.skills.length}\n💼 Target Role: ${careerGraph.targetRole || 'Exploring'
+      }\n\nBuilding my career with CareerLens AI!`;
 
     if (navigator.share) {
       navigator.share({
@@ -152,7 +151,7 @@ export function CareerGraphPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background p-4 md:p-8">
+    <div className="min-h-screen bg-transparent p-4 md:p-8 relative z-10">
       <div className="max-w-7xl mx-auto space-y-8">
         {/* Header */}
         <motion.div

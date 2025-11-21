@@ -130,7 +130,7 @@ export default function CareerNavigatorPage() {
   });
 
   return (
-    <div className="min-h-screen bg-background text-white">
+    <div className="min-h-screen bg-transparent text-white relative z-10">
       {/* Header - Glassmorphism */}
       <div className="border-b border-white/[0.16] bg-white/[0.08] backdrop-blur-xl">
         <div className="max-w-[1920px] mx-auto px-8 py-6">
@@ -201,11 +201,10 @@ export default function CareerNavigatorPage() {
                           : [...prev, interest]
                       );
                     }}
-                    className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all backdrop-blur-lg ${
-                      interests.includes(interest)
+                    className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all backdrop-blur-lg ${interests.includes(interest)
                         ? 'bg-neon-purple/20 text-neon-purple border border-neon-purple/30 shadow-neon-purple/20 shadow-sm'
                         : 'bg-white/[0.08] text-white/65 hover:bg-white/[0.12] border border-white/10'
-                    }`}
+                      }`}
                   >
                     {interest}
                   </button>
@@ -273,11 +272,10 @@ export default function CareerNavigatorPage() {
                       <button
                         key={type}
                         onClick={() => setFilterType(type)}
-                        className={`px-3 py-1.5 rounded-full text-xs font-medium capitalize transition-all backdrop-blur-lg ${
-                          filterType === type
+                        className={`px-3 py-1.5 rounded-full text-xs font-medium capitalize transition-all backdrop-blur-lg ${filterType === type
                             ? 'bg-neon-cyan/20 text-neon-cyan border border-neon-cyan/30 shadow-neon-cyan/20 shadow-sm'
                             : 'bg-white/[0.08] text-white/65 hover:bg-white/[0.12] border border-white/10'
-                        }`}
+                          }`}
                       >
                         {type}
                       </button>

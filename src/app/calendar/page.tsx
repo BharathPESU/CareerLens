@@ -256,7 +256,7 @@ export default function CalendarPage() {
     // Calculate event time based on suggestion
     const now = new Date();
     let startTime = new Date(now);
-    
+
     // Set time based on suggested time
     if (suggestion.suggestedTime === 'morning') {
       startTime.setHours(9, 0, 0, 0);
@@ -268,15 +268,15 @@ export default function CalendarPage() {
       // Default to next available hour
       startTime.setHours(now.getHours() + 1, 0, 0, 0);
     }
-    
+
     // If time has passed today, schedule for tomorrow
     if (startTime < now) {
       startTime.setDate(startTime.getDate() + 1);
     }
-    
+
     const endTime = new Date(startTime);
     endTime.setMinutes(endTime.getMinutes() + suggestion.duration);
-    
+
     // Create new event from suggestion
     const newEvent: CareerEvent = {
       id: `event-${Date.now()}`,
@@ -295,17 +295,17 @@ export default function CalendarPage() {
         timeZone: 'UTC',
       },
     };
-    
+
     // Add to events list
     console.log('Adding AI suggestion to calendar:', newEvent);
     setEvents((prev) => {
-      const updated = [...prev, newEvent].sort((a, b) => 
+      const updated = [...prev, newEvent].sort((a, b) =>
         new Date(a.start.dateTime).getTime() - new Date(b.start.dateTime).getTime()
       );
       console.log('Updated events list:', updated.length, 'events');
       return updated;
     });
-    
+
     // If it's for today, add to today's tasks
     const isToday = startTime.toDateString() === new Date().toDateString();
     if (isToday) {
@@ -316,17 +316,17 @@ export default function CalendarPage() {
         totalToday: prev.totalToday + 1,
       }));
     }
-    
+
     // Remove from suggestions
     setSuggestions((sug) => sug.filter((s) => s !== suggestion));
-    
+
     toast({
       title: 'Event Added ✅',
-      description: `${suggestion.summary} scheduled for ${startTime.toLocaleString('en-US', { 
-        month: 'short', 
-        day: 'numeric', 
-        hour: '2-digit', 
-        minute: '2-digit' 
+      description: `${suggestion.summary} scheduled for ${startTime.toLocaleString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
       })}`,
     });
   };
@@ -344,10 +344,10 @@ export default function CalendarPage() {
 
   const handleEventSave = (updatedEvent: CareerEvent) => {
     console.log('Saving event:', updatedEvent);
-    
+
     // Check if event already exists (updating) or is new (creating)
     const existingEvent = events.find((e) => e.id === updatedEvent.id);
-    
+
     if (existingEvent) {
       // UPDATE existing event
       console.log('Updating existing event');
@@ -365,12 +365,12 @@ export default function CalendarPage() {
       // CREATE new event
       console.log('Creating new event');
       setEvents((prev) => {
-        const updated = [...prev, updatedEvent].sort((a, b) => 
+        const updated = [...prev, updatedEvent].sort((a, b) =>
           new Date(a.start.dateTime).getTime() - new Date(b.start.dateTime).getTime()
         );
         return updated;
       });
-      
+
       // If it's for today, add to today's tasks
       const startTime = new Date(updatedEvent.start.dateTime);
       const isToday = startTime.toDateString() === new Date().toDateString();
@@ -381,7 +381,7 @@ export default function CalendarPage() {
           totalToday: prev.totalToday + 1,
         }));
       }
-      
+
       toast({
         title: 'Event Created ✅',
         description: `${updatedEvent.summary} has been added to your calendar`,
@@ -408,7 +408,7 @@ export default function CalendarPage() {
       prev.map((e) => (e.id === event.id ? updatedEvent : e))
     );
     setSelectedEvent(updatedEvent);
-    
+
     if (updatedEvent.completed) {
       setStats((prev) => ({
         ...prev,
@@ -426,10 +426,10 @@ export default function CalendarPage() {
     // Create a new event at the selected date or today
     const startTime = new Date(selectedDate);
     startTime.setHours(9, 0, 0, 0);
-    
+
     const endTime = new Date(startTime);
     endTime.setHours(10, 0, 0, 0);
-    
+
     const newEvent: CareerEvent = {
       id: `event-${Date.now()}`,
       summary: '',
@@ -446,13 +446,13 @@ export default function CalendarPage() {
         timeZone: 'UTC',
       },
     };
-    
+
     console.log('Creating new event template:', newEvent);
-    
+
     // Open the EDIT modal so user can fill in details
     setSelectedEvent(newEvent);
     setIsEditModalOpen(true);
-    
+
     // Don't add to events array yet - wait for user to save
   };
 
@@ -502,7 +502,7 @@ export default function CalendarPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-blue-950 to-slate-900 p-4 md:p-8">
+    <div className="min-h-screen bg-transparent p-4 md:p-8 relative z-10">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
         <motion.div
@@ -528,7 +528,7 @@ export default function CalendarPage() {
               <RefreshCw className="w-4 h-4 mr-2" />
               Sync
             </Button>
-            <Button 
+            <Button
               onClick={handleCreateNewEvent}
               variant="neon"
               className="shadow-neon-cyan"
@@ -593,9 +593,8 @@ export default function CalendarPage() {
                   {Array.from({ length: 7 }).map((_, i) => (
                     <div
                       key={i}
-                      className={`h-2 flex-1 rounded ${
-                        i < stats.streak ? 'bg-orange-400' : 'bg-slate-700'
-                      }`}
+                      className={`h-2 flex-1 rounded ${i < stats.streak ? 'bg-orange-400' : 'bg-slate-700'
+                        }`}
                     />
                   ))}
                 </div>
@@ -696,11 +695,10 @@ export default function CalendarPage() {
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, x: -100 }}
-                        className={`p-4 rounded-lg border transition-all cursor-pointer ${
-                          task.completed
+                        className={`p-4 rounded-lg border transition-all cursor-pointer ${task.completed
                             ? 'bg-green-500/10 border-green-500/20'
                             : 'bg-slate-800/50 border-slate-700/50 hover:border-blue-500/50'
-                        }`}
+                          }`}
                         onClick={() => toggleTaskComplete(task.id)}
                       >
                         <div className="flex items-start gap-3">
@@ -713,11 +711,10 @@ export default function CalendarPage() {
                             <div className="flex items-center gap-2 mb-1">
                               <span className="text-lg">{getTypeIcon(task.type)}</span>
                               <h3
-                                className={`font-medium ${
-                                  task.completed
+                                className={`font-medium ${task.completed
                                     ? 'text-slate-400 line-through'
                                     : 'text-white'
-                                }`}
+                                  }`}
                               >
                                 {task.summary}
                               </h3>

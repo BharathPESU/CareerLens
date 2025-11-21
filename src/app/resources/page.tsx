@@ -15,10 +15,7 @@ import {
   getCuratedResources,
   searchResources,
 } from '@/lib/resource-hub-service';
-import {
-  scrapeAllPlatforms,
-  type ScrapedCourse
-} from '@/lib/web-scraper-service';
+
 import { getDoc, doc } from 'firebase/firestore';
 import { getFirestore } from 'firebase/firestore';
 import { getApp } from 'firebase/app';
@@ -34,10 +31,24 @@ export default function ResourceHubPage() {
   const [loadingAI, setLoadingAI] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [liveResources, setLiveResources] = useState<Resource[]>([]);
-  const [loadingLive, setLoadingLive] = useState(false);  const [selectedProvider, setSelectedProvider] = useState<string>('all');
+  const [loadingLive, setLoadingLive] = useState(false);
+  const [selectedProvider, setSelectedProvider] = useState<string>('all');
   const [selectedLevel, setSelectedLevel] = useState<string>('all');
 
-  const providers = ['all', 'NPTEL', 'Coursera', 'AWS Educate', 'Google Cloud Skills Boost', 'edX'];
+  const providers = [
+    'all',
+    'NPTEL',
+    'Coursera',
+    'AWS Educate',
+    'Google Cloud Skills Boost',
+    'edX',
+    'MIT OpenCourseWare',
+    'Harvard Online',
+    'Microsoft Learn',
+    'IBM SkillsBuild',
+    'FreeCodeCamp',
+    'Khan Academy'
+  ];
   const levels = ['all', 'Beginner', 'Intermediate', 'Advanced'];
 
   useEffect(() => {
@@ -81,7 +92,7 @@ export default function ResourceHubPage() {
       const app = getApp();
       const db = getFirestore(app);
       const userDoc = await getDoc(doc(db, 'users', user.uid));
-      
+
       if (!userDoc.exists()) {
         throw new Error('User profile not found');
       }
@@ -100,7 +111,7 @@ export default function ResourceHubPage() {
         description: error.message || 'Failed to get personalized recommendations',
         variant: 'destructive',
       });
-        } finally {
+    } finally {
       setLoadingAI(false);
     }
   };
@@ -108,50 +119,69 @@ export default function ResourceHubPage() {
   const loadLiveResources = async () => {
     setLoadingLive(true);
     try {
-      toast({
-        title: 'Scraping Courses...',
-        description: 'Fetching live courses from 5 platforms',
+      const toastId = toast({
+        title: '🔄 Scraping Courses...',
+        description: 'Fetching from 20+ platforms: NPTEL, AWS, GCP, edX, Coursera, MIT OCW, Harvard, and more...',
+        duration: 5000,
       });
 
-      const scrapeResults = await scrapeAllPlatforms();
-      
-      // Flatten all courses from all platforms
-      const allScrapedCourses: ScrapedCourse[] = scrapeResults.flatMap(result => result.courses);
-      
-      // Convert ScrapedCourse to Resource format
-      const liveCoursesAsResources: Resource[] = allScrapedCourses.map((course: ScrapedCourse) => ({
-        id: `live_${course.platform}_${course.id}`,
+      // Call the new comprehensive scraping API
+      const response = await fetch('/api/courses/scrape?platforms=all&limit=100', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to scrape courses');
+      }
+
+      const data = await response.json();
+
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to scrape courses');
+      }
+
+      // Convert to Resource format
+      const liveCoursesAsResources: Resource[] = data.courses.map((course: any) => ({
+        id: `live_${course.platform.toLowerCase().replace(/\s+/g, '_')}_${course.id}`,
         title: course.title,
         description: course.description,
         url: course.url,
-        provider: course.platform === 'AWS' ? 'AWS Educate' : 
-                  course.platform === 'GCP' ? 'Google Cloud Skills Boost' : 
-                  course.platform as 'NPTEL' | 'Coursera',
+        provider: course.platform,
         duration: course.duration || 'Self-paced',
         category: course.category || 'Technology',
-        skills: course.skillTags || [],
+        skills: course.skills || [],
         certificate: true,
         free: course.isFree,
-        level: course.level ? 
-               (course.level.charAt(0).toUpperCase() + course.level.slice(1)) as 'Beginner' | 'Intermediate' | 'Advanced' : 
-               'Beginner',
+        level: course.difficulty || 'Beginner',
         createdAt: new Date().toISOString(),
-        rating: course.rating,
-        enrollments: course.enrollmentCount,
-        thumbnail: course.thumbnail
+        rating: course.rating || 4,
+        enrollments: course.enrolled || 0,
+        thumbnail: course.thumbnail,
       }));
 
       setLiveResources(liveCoursesAsResources);
-      
+
+      // Build status message
+      const platformStatus = data.platformStatus
+        .map((p: any) => `${p.platform}: ${p.status === 'success' ? '✓' : '✗'} (${p.courses})`)
+        .join('\n');
+
       toast({
-        title: 'Success!',
-        description: `Found ${liveCoursesAsResources.length} courses from ${scrapeResults.length} platforms`,
+        title: '✅ Scraping Complete!',
+        description: `Found ${data.totalCourses} courses from ${data.totalPlatforms} platforms`,
+        duration: 5000,
       });
-    } catch (error) {
+
+      console.log('Platform Status:\n', platformStatus);
+
+    } catch (error: any) {
       console.error('Error loading live resources:', error);
       toast({
-        title: 'Error',
-        description: 'Failed to scrape courses',
+        title: '❌ Scraping Failed',
+        description: error.message || 'Failed to scrape courses from platforms',
         variant: 'destructive',
       });
     } finally {
@@ -165,7 +195,7 @@ export default function ResourceHubPage() {
 
   const filterResources = () => {
     let allResources = [...resources, ...aiRecommendations, ...liveResources];
-    
+
     // Remove duplicates based on URL
     allResources = Array.from(new Map(allResources.map(r => [r.url, r])).values());
 
@@ -195,7 +225,7 @@ export default function ResourceHubPage() {
 
   const handleSearch = async () => {
     if (!searchQuery.trim()) return;
-    
+
     setLoading(true);
     try {
       const allResources = [...resources, ...aiRecommendations];
@@ -214,26 +244,32 @@ export default function ResourceHubPage() {
 
   const getProviderColor = (provider: string) => {
     const colors: Record<string, string> = {
-      'NPTEL': 'bg-orange-500/10 text-orange-400 border-orange-500/30',
-      'Coursera': 'bg-blue-500/10 text-blue-400 border-blue-500/30',
-      'AWS Educate': 'bg-yellow-500/10 text-yellow-400 border-yellow-500/30',
-      'Google Cloud Skills Boost': 'bg-green-500/10 text-green-400 border-green-500/30',
-      'edX': 'bg-purple-500/10 text-purple-400 border-purple-500/30',
+      'NPTEL': 'bg-gradient-to-r from-[#FF6B35]/10 to-[#FF8C42]/10 text-[#FF8C42] border-[#FF6B35]/30',
+      'Coursera': 'bg-gradient-to-r from-[#0056D2]/10 to-[#0073E6]/10 text-[#0073E6] border-[#0056D2]/30',
+      'AWS Educate': 'bg-gradient-to-r from-[#FF9900]/10 to-[#FFBB00]/10 text-[#FFBB00] border-[#FF9900]/30',
+      'Google Cloud Skills Boost': 'bg-gradient-to-r from-[#00FFC6]/10 to-[#00E5B8]/10 text-[#00FFC6] border-[#00FFC6]/30',
+      'edX': 'bg-gradient-to-r from-[#A57CFF]/10 to-[#C4A3FF]/10 text-[#A57CFF] border-[#A57CFF]/30',
+      'MIT OpenCourseWare': 'bg-gradient-to-r from-[#A31F34]/10 to-[#C41E3A]/10 text-[#C41E3A] border-[#A31F34]/30',
+      'Harvard Online': 'bg-gradient-to-r from-[#A51C30]/10 to-[#C90016]/10 text-[#C90016] border-[#A51C30]/30',
+      'Microsoft Learn': 'bg-gradient-to-r from-[#00A4EF]/10 to-[#00BCF2]/10 text-[#00BCF2] border-[#00A4EF]/30',
+      'IBM SkillsBuild': 'bg-gradient-to-r from-[#0062FF]/10 to-[#0070FF]/10 text-[#0070FF] border-[#0062FF]/30',
+      'FreeCodeCamp': 'bg-gradient-to-r from-[#00FFC6]/10 to-[#00E5B8]/10 text-[#00FFC6] border-[#00FFC6]/30',
+      'Khan Academy': 'bg-gradient-to-r from-[#14BF96]/10 to-[#14CC9E]/10 text-[#14CC9E] border-[#14BF96]/30',
     };
-    return colors[provider] || 'bg-gray-500/10 text-gray-400 border-gray-500/30';
+    return colors[provider] || 'bg-white/10 text-white/75 border-white/[0.16]';
   };
 
   const getLevelColor = (level: string) => {
     const colors: Record<string, string> = {
-      'Beginner': 'bg-green-500/10 text-green-400',
-      'Intermediate': 'bg-yellow-500/10 text-yellow-400',
-      'Advanced': 'bg-red-500/10 text-red-400',
+      'Beginner': 'bg-gradient-to-r from-[#00FFC6]/20 to-[#00E5B8]/20 text-[#00FFC6] border-[#00FFC6]/30',
+      'Intermediate': 'bg-gradient-to-r from-[#00E5FF]/20 to-[#00CCEE]/20 text-[#00E5FF] border-[#00E5FF]/30',
+      'Advanced': 'bg-gradient-to-r from-[#FF6EC7]/20 to-[#FF85D4]/20 text-[#FF6EC7] border-[#FF6EC7]/30',
     };
-    return colors[level] || 'bg-gray-500/10 text-gray-400';
+    return colors[level] || 'bg-white/10 text-white/75 border-white/[0.16]';
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-purple-950 to-slate-900 p-4 md:p-8">
+    <div className="min-h-screen mesh-wave-bg p-4 md:p-8">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
         <motion.div
@@ -242,11 +278,11 @@ export default function ResourceHubPage() {
           className="flex flex-col md:flex-row md:items-center md:justify-between gap-4"
         >
           <div>
-            <h1 className="text-3xl font-bold text-white flex items-center gap-3">
-              <BookOpen className="w-8 h-8 text-purple-400" />
+            <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-[#00E5FF] via-[#A57CFF] to-[#00FFC6] bg-clip-text text-transparent flex items-center gap-3 font-headline">
+              <BookOpen className="w-10 h-10 text-[#00E5FF]" />
               Free Resource Hub
             </h1>
-            <p className="text-slate-400 mt-1">
+            <p className="text-white/65 mt-2 text-lg">
               Discover free courses from NPTEL, Coursera, AWS, GCP & more
             </p>
           </div>
@@ -254,15 +290,15 @@ export default function ResourceHubPage() {
             <Button
               onClick={loadAIRecommendations}
               disabled={loadingAI || !user}
-              className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+              className="glass-btn gradient-glow group"
             >
-              <Sparkles className="w-4 h-4 mr-2" />
+              <Sparkles className="w-4 h-4 mr-2 group-hover:rotate-12 transition-transform" />
               {loadingAI ? 'Getting Recommendations...' : 'AI Recommendations'}
             </Button>
             <Button
               onClick={loadLiveResources}
               disabled={loadingLive}
-              className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600"
+              className="glass-btn bg-gradient-to-r from-[#00E5FF] to-[#00FFC6] text-black font-semibold hover:shadow-[0_0_30px_rgba(0,229,255,0.6)] transition-all"
             >
               {loadingLive ? (
                 <>
@@ -285,20 +321,20 @@ export default function ResourceHubPage() {
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
           >
-            <Card className="bg-gradient-to-r from-purple-900/50 to-blue-900/50 border-purple-500/30 backdrop-blur-sm">
+            <Card className="glass-card border-[#A57CFF]/30 hover:border-[#A57CFF]/60 transition-all">
               <CardHeader>
                 <CardTitle className="text-white flex items-center gap-2">
-                  <Sparkles className="w-5 h-5 text-purple-400" />
+                  <Sparkles className="w-5 h-5 text-[#A57CFF]" />
                   AI Personalized Recommendations
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-slate-300 mb-4">
+                <p className="text-white/75 mb-4">
                   Based on your profile and goals, we found {aiRecommendations.length} courses perfect for you!
                 </p>
                 <div className="flex items-center gap-2">
-                  <Award className="w-4 h-4 text-yellow-400" />
-                  <span className="text-sm text-yellow-400">
+                  <Award className="w-4 h-4 text-[#00FFC6]" />
+                  <span className="text-sm text-[#00FFC6]">
                     AI-powered recommendations using your skills and career goals
                   </span>
                 </div>
@@ -313,20 +349,20 @@ export default function ResourceHubPage() {
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
           >
-            <Card className="bg-gradient-to-r from-green-900/50 to-emerald-900/50 border-green-500/30 backdrop-blur-sm">
+            <Card className="glass-card border-[#00FFC6]/30 hover:border-[#00FFC6]/60 transition-all">
               <CardHeader>
                 <CardTitle className="text-white flex items-center gap-2">
-                  <Zap className="w-5 h-5 text-green-400" />
+                  <Zap className="w-5 h-5 text-[#00FFC6]" />
                   Live Resources from Web
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-slate-300 mb-4">
-                  Scraped {liveResources.length} fresh courses from 5 platforms: NPTEL, Coursera, AWS Training, Google Cloud Skills Boost, and YouTube!
+                <p className="text-white/75 mb-4">
+                  Scraped {liveResources.length} fresh courses from 20+ platforms: NPTEL, AWS, GCP, edX, Coursera, MIT OCW, Harvard, Microsoft Learn, IBM, FreeCodeCamp, Khan Academy, and more!
                 </p>
                 <div className="flex items-center gap-2">
-                  <TrendingUp className="w-4 h-4 text-green-400" />
-                  <span className="text-sm text-green-400">
+                  <TrendingUp className="w-4 h-4 text-[#00FFC6]" />
+                  <span className="text-sm text-[#00FFC6]">
                     Real-time data updated just now
                   </span>
                 </div>
@@ -336,28 +372,28 @@ export default function ResourceHubPage() {
         )}
 
         {/* Filters */}
-        <Card className="bg-slate-900/50 border-slate-700/50 backdrop-blur-sm">
+        <Card className="glass-card">
           <CardContent className="p-4">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {/* Search */}
               <div className="space-y-2">
-                <label className="text-sm text-slate-400">Search</label>
+                <label className="text-sm text-white/65">Search</label>
                 <div className="flex gap-2">
                   <div className="relative flex-1">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/50" />
                     <Input
                       type="text"
                       placeholder="Search courses..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                      className="pl-10 bg-slate-800/50 border-slate-700 text-white"
+                      className="pl-10 glass-card border-white/[0.16] focus:border-[#00E5FF] text-white"
                     />
                   </div>
                   <Button
                     size="sm"
                     onClick={handleSearch}
-                    className="bg-purple-600 hover:bg-purple-700"
+                    className="glass-btn bg-gradient-to-r from-[#00E5FF] to-[#A57CFF] text-white hover:shadow-neon-cyan"
                   >
                     Search
                   </Button>
@@ -366,7 +402,7 @@ export default function ResourceHubPage() {
 
               {/* Provider Filter */}
               <div className="space-y-2">
-                <label className="text-sm text-slate-400">Provider</label>
+                <label className="text-sm text-white/65">Provider</label>
                 <div className="flex flex-wrap gap-2">
                   {providers.map((provider) => (
                     <Button
@@ -374,11 +410,10 @@ export default function ResourceHubPage() {
                       size="sm"
                       variant="outline"
                       onClick={() => setSelectedProvider(provider)}
-                      className={`text-xs ${
-                        selectedProvider === provider
-                          ? 'bg-purple-600 text-white border-purple-500'
-                          : 'bg-slate-800/50 text-slate-300 border-slate-700 hover:bg-slate-700'
-                      }`}
+                      className={`text-xs transition-all ${selectedProvider === provider
+                        ? 'bg-gradient-to-r from-[#00E5FF] to-[#A57CFF] text-white border-[#00E5FF]/50 shadow-neon-cyan'
+                        : 'glass-card border-white/[0.16] text-white/75 hover:border-[#00E5FF]/50'
+                        }`}
                     >
                       {provider === 'all' ? 'All' : provider}
                     </Button>
@@ -388,7 +423,7 @@ export default function ResourceHubPage() {
 
               {/* Level Filter */}
               <div className="space-y-2">
-                <label className="text-sm text-slate-400">Difficulty</label>
+                <label className="text-sm text-white/65">Difficulty</label>
                 <div className="flex flex-wrap gap-2">
                   {levels.map((level) => (
                     <Button
@@ -396,11 +431,10 @@ export default function ResourceHubPage() {
                       size="sm"
                       variant="outline"
                       onClick={() => setSelectedLevel(level)}
-                      className={`${
-                        selectedLevel === level
-                          ? 'bg-purple-600 text-white border-purple-500'
-                          : 'bg-slate-800/50 text-slate-300 border-slate-700 hover:bg-slate-700'
-                      }`}
+                      className={`transition-all ${selectedLevel === level
+                        ? 'bg-gradient-to-r from-[#00E5FF] to-[#A57CFF] text-white border-[#00E5FF]/50 shadow-neon-cyan'
+                        : 'glass-card border-white/[0.16] text-white/75 hover:border-[#00E5FF]/50'
+                        }`}
                     >
                       {level === 'all' ? 'All Levels' : level}
                     </Button>
@@ -418,17 +452,17 @@ export default function ResourceHubPage() {
               <motion.div
                 animate={{ rotate: 360 }}
                 transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-                className="w-8 h-8 border-4 border-purple-500 border-t-transparent rounded-full mx-auto"
+                className="w-8 h-8 border-4 border-[#00E5FF] border-t-transparent rounded-full mx-auto"
               />
-              <p className="text-slate-400 mt-4">Loading resources...</p>
+              <p className="text-white/65 mt-4">Loading resources...</p>
             </div>
           ) : filteredResources.length === 0 ? (
             <div className="col-span-full">
-              <Card className="bg-slate-900/50 border-slate-700/50">
+              <Card className="glass-card">
                 <CardContent className="p-12 text-center">
-                  <BookOpen className="w-16 h-16 text-slate-600 mx-auto mb-4" />
+                  <BookOpen className="w-16 h-16 text-white/20 mx-auto mb-4" />
                   <h3 className="text-xl font-semibold text-white mb-2">No Resources Found</h3>
-                  <p className="text-slate-400 mb-4">
+                  <p className="text-white/65 mb-4">
                     Try adjusting your filters or get AI recommendations
                   </p>
                   <Button
@@ -437,7 +471,7 @@ export default function ResourceHubPage() {
                       setSelectedProvider('all');
                       setSelectedLevel('all');
                     }}
-                    className="bg-purple-600 hover:bg-purple-700"
+                    className="glass-btn bg-gradient-to-r from-[#00E5FF] to-[#A57CFF] text-white"
                   >
                     Clear Filters
                   </Button>
@@ -454,38 +488,38 @@ export default function ResourceHubPage() {
                   exit={{ opacity: 0, scale: 0.9 }}
                   transition={{ delay: index * 0.05 }}
                 >
-                  <Card className="bg-slate-900/50 border-slate-700/50 backdrop-blur-sm hover:border-purple-500/50 transition-all h-full flex flex-col">
+                  <Card className="glass-card hover:border-[#00E5FF]/50 transition-all-300 h-full flex flex-col group">
                     <CardHeader>
                       <div className="flex items-start justify-between gap-2 mb-2">
                         <Badge variant="outline" className={getProviderColor(resource.provider)}>
                           {resource.provider}
                         </Badge>
                         {resource.isAIRecommended && (
-                          <Badge variant="outline" className="bg-gradient-to-r from-purple-500/10 to-blue-500/10 text-purple-400 border-purple-500/30">
+                          <Badge variant="outline" className="bg-gradient-to-r from-[#A57CFF]/10 to-[#00E5FF]/10 text-[#A57CFF] border-[#A57CFF]/30">
                             <Sparkles className="w-3 h-3 mr-1" />
                             AI Pick
                           </Badge>
                         )}
                       </div>
-                      <h3 className="text-lg font-semibold text-white leading-tight">
+                      <h3 className="text-lg font-semibold text-white leading-tight group-hover:text-[#00E5FF] transition-colors">
                         {resource.title}
                       </h3>
                     </CardHeader>
                     <CardContent className="flex-1 flex flex-col">
-                      <p className="text-slate-400 text-sm mb-4 flex-1">
+                      <p className="text-white/65 text-sm mb-4 flex-1">
                         {resource.description}
                       </p>
-                      
+
                       <div className="space-y-3">
                         <div className="flex items-center gap-2 flex-wrap">
                           <Badge className={getLevelColor(resource.level)}>
                             {resource.level}
                           </Badge>
-                          <Badge variant="outline" className="bg-slate-800/50 text-slate-300 border-slate-600">
+                          <Badge variant="outline" className="glass-card text-white/75 border-white/[0.16]">
                             {resource.category}
                           </Badge>
                           {resource.duration && (
-                            <Badge variant="outline" className="bg-slate-800/50 text-slate-300 border-slate-600">
+                            <Badge variant="outline" className="glass-card text-white/75 border-white/[0.16]">
                               {resource.duration}
                             </Badge>
                           )}
@@ -497,16 +531,15 @@ export default function ResourceHubPage() {
                               {Array.from({ length: 5 }).map((_, i) => (
                                 <Star
                                   key={i}
-                                  className={`w-4 h-4 ${
-                                    i < resource.rating!
-                                      ? 'fill-yellow-400 text-yellow-400'
-                                      : 'text-slate-600'
-                                  }`}
+                                  className={`w-4 h-4 ${i < resource.rating!
+                                    ? 'fill-[#00FFC6] text-[#00FFC6]'
+                                    : 'text-white/20'
+                                    }`}
                                 />
                               ))}
                             </div>
                             {resource.enrollments && (
-                              <span className="text-xs text-slate-500">
+                              <span className="text-xs text-white/50">
                                 {resource.enrollments.toLocaleString()} enrolled
                               </span>
                             )}
@@ -515,7 +548,7 @@ export default function ResourceHubPage() {
 
                         <Button
                           asChild
-                          className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+                          className="w-full glass-btn bg-gradient-to-r from-[#00E5FF] to-[#A57CFF] text-white hover:shadow-neon-cyan"
                         >
                           <a href={resource.url} target="_blank" rel="noopener noreferrer">
                             <ExternalLink className="w-4 h-4 mr-2" />

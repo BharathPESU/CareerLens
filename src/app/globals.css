@@ -118,6 +118,7 @@
 }
 
 @layer components {
+
   /* Premium Glass Card */
   .glass-card {
     background: var(--glass-bg);
@@ -135,7 +136,7 @@
     inset: 0;
     border-radius: inherit;
     padding: 1px;
-    background: linear-gradient(135deg, rgba(255,255,255,0.1), transparent);
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), transparent);
     -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
     -webkit-mask-composite: xor;
     mask-composite: exclude;
@@ -214,7 +215,7 @@
   /* Neon Border Gradient */
   .neon-border {
     border: 1px solid transparent;
-    background-image: 
+    background-image:
       linear-gradient(var(--background), var(--background)),
       linear-gradient(135deg, #00E5FF, #A57CFF, #00FFC6);
     background-origin: border-box;
@@ -223,7 +224,18 @@
 
   /* Mesh Wave Animation Background */
   .mesh-wave-bg {
-    background: 
+    position: relative;
+    background-color: transparent;
+  }
+
+  .mesh-wave-bg::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background:
       radial-gradient(at 10% 20%, rgba(0, 229, 255, 0.15) 0px, transparent 50%),
       radial-gradient(at 80% 10%, rgba(165, 124, 255, 0.15) 0px, transparent 50%),
       radial-gradient(at 90% 80%, rgba(0, 255, 198, 0.1) 0px, transparent 50%),
@@ -232,37 +244,49 @@
     background-size: 200% 200%;
     animation: mesh-wave-animation 20s ease infinite;
     filter: blur(60px);
+    z-index: 0;
+    pointer-events: none;
+  }
+
+  .mesh-wave-bg>* {
+    position: relative;
+    z-index: 1;
   }
 
   @keyframes mesh-wave-animation {
-    0%, 100% {
-      background-position: 
+
+    0%,
+    100% {
+      background-position:
         10% 20%,
-        80% 10%, 
+        80% 10%,
         90% 80%,
         20% 90%,
         50% 50%;
     }
+
     25% {
-      background-position: 
+      background-position:
         30% 30%,
-        70% 20%, 
+        70% 20%,
         80% 70%,
         30% 80%,
         60% 40%;
     }
+
     50% {
-      background-position: 
+      background-position:
         50% 40%,
-        60% 30%, 
+        60% 30%,
         70% 60%,
         40% 70%,
         45% 55%;
     }
+
     75% {
-      background-position: 
+      background-position:
         20% 30%,
-        85% 15%, 
+        85% 15%,
         85% 85%,
         15% 85%,
         55% 45%;
@@ -281,7 +305,7 @@
 
   /* Mesh Wave with More Intense Colors */
   .mesh-wave-bg-intense {
-    background: 
+    background:
       radial-gradient(at 10% 20%, rgba(0, 229, 255, 0.25) 0px, transparent 50%),
       radial-gradient(at 80% 10%, rgba(165, 124, 255, 0.25) 0px, transparent 50%),
       radial-gradient(at 90% 80%, rgba(0, 255, 198, 0.2) 0px, transparent 50%),
@@ -290,5 +314,67 @@
     background-size: 200% 200%;
     animation: mesh-wave-animation 20s ease infinite;
     filter: blur(80px);
+  }
+
+  /* Custom Scrollbar for Glassmorphic Theme */
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, #00E5FF, #A57CFF);
+    border-radius: 10px;
+    transition: background 0.3s ease;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, #A57CFF, #FF6EC7);
+  }
+
+  /* Firefox Scrollbar */
+  .custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(165, 124, 255, 0.5) rgba(255, 255, 255, 0.05);
+  }
+
+  /* Global Video Background */
+  .global-video-background {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -10;
+    overflow: hidden;
+  }
+
+  .global-video-background video {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    min-width: 100%;
+    min-height: 100%;
+    width: auto;
+    height: auto;
+    transform: translate(-50%, -50%);
+    object-fit: cover;
+    z-index: -1;
+  }
+
+  /* Ensure all main content appears above video */
+  body {
+    position: relative;
+  }
+
+  /* Performance optimization for video playback */
+  video {
+    will-change: transform;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
   }
 }

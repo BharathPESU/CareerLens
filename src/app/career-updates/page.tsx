@@ -43,10 +43,10 @@ export default function CareerUpdatesPage() {
   useEffect(() => {
     setLoading(true);
     setError(null);
-    
+
     // Listen to the latest career update from our Real-Time Intel Engine
     const q = query(collection(db, 'careerUpdates'), orderBy('timestamp', 'desc'), limit(1));
-    
+
     const unsubscribe = firestoreOnSnapshot(
       q,
       (snapshot) => {
@@ -88,7 +88,7 @@ export default function CareerUpdatesPage() {
         setLoading(false);
       }
     );
-    
+
     return () => unsubscribe();
   }, []);
 
@@ -122,7 +122,7 @@ export default function CareerUpdatesPage() {
     try {
       const response = await fetch('/api/career-updates/refresh', { method: 'POST' });
       const result = await response.json();
-      
+
       if (!result.success) {
         throw new Error(result.error || 'Failed to refresh data');
       }
@@ -145,38 +145,38 @@ export default function CareerUpdatesPage() {
     }
 
     if (error) {
-        return (
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="bg-yellow-600/20 border border-yellow-500/30 rounded-xl p-4"
-            >
-              <div className="flex items-start gap-3">
-                <Sparkles className="w-5 h-5 text-yellow-400 flex-shrink-0 mt-0.5" />
-                <div>
-                  <h3 className="text-yellow-300 font-semibold mb-1">Data not available</h3>
-                  <p className="text-gray-300 text-sm">{error}</p>
-                  <p className="text-gray-400 text-xs mt-2">
-                    💡 The system fetches fresh data every 12 hours, or you can manually trigger a refresh using the button above.
-                  </p>
-                </div>
-              </div>
-            </motion.div>
-          );
+      return (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-yellow-600/20 border border-yellow-500/30 rounded-xl p-4"
+        >
+          <div className="flex items-start gap-3">
+            <Sparkles className="w-5 h-5 text-yellow-400 flex-shrink-0 mt-0.5" />
+            <div>
+              <h3 className="text-yellow-300 font-semibold mb-1">Data not available</h3>
+              <p className="text-gray-300 text-sm">{error}</p>
+              <p className="text-gray-400 text-xs mt-2">
+                💡 The system fetches fresh data every 12 hours, or you can manually trigger a refresh using the button above.
+              </p>
+            </div>
+          </div>
+        </motion.div>
+      );
     }
 
     return (
-        <AnimatePresence mode="wait">
-            {activeTab === 'skills' && <ContentTab items={summary?.trendingSkills} icon={TrendingUp} color="purple" />}
-            {activeTab === 'certs' && <ContentTab items={summary?.certifications} icon={Award} color="green" />}
-            {activeTab === 'jobs' && <ContentTab items={summary?.opportunities} icon={Briefcase} color="blue" />}
-            {activeTab === 'ai' && <ContentTab items={summary?.aiInsights} icon={Sparkles} color="yellow" />}
-        </AnimatePresence>
+      <AnimatePresence mode="wait">
+        {activeTab === 'skills' && <ContentTab items={summary?.trendingSkills} icon={TrendingUp} color="purple" />}
+        {activeTab === 'certs' && <ContentTab items={summary?.certifications} icon={Award} color="green" />}
+        {activeTab === 'jobs' && <ContentTab items={summary?.opportunities} icon={Briefcase} color="blue" />}
+        {activeTab === 'ai' && <ContentTab items={summary?.aiInsights} icon={Sparkles} color="yellow" />}
+      </AnimatePresence>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-blue-950 to-slate-900 p-4 md:p-8">
+    <div className="min-h-screen bg-transparent p-4 md:p-8 relative z-10">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
         <motion.div
@@ -224,11 +224,10 @@ export default function CareerUpdatesPage() {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as any)}
-              className={`px-4 py-2 rounded-full font-semibold transition-all flex items-center gap-2 whitespace-nowrap backdrop-blur-xl ${
-                activeTab === tab.id
+              className={`px-4 py-2 rounded-full font-semibold transition-all flex items-center gap-2 whitespace-nowrap backdrop-blur-xl ${activeTab === tab.id
                   ? 'bg-gradient-to-r from-neon-cyan to-neon-purple text-white shadow-neon-purple border-2 border-white/20'
                   : 'bg-white/[0.08] border border-white/20 text-white/75 hover:bg-white/[0.12] hover:scale-105'
-              }`}
+                }`}
             >
               <tab.icon className="w-4 h-4" />
               {tab.label}
@@ -237,69 +236,69 @@ export default function CareerUpdatesPage() {
         </div>
 
         {renderContent()}
-        
+
         {/* Real-Time Career Intel Widget */}
         <div className="mt-8">
           <CareerUpdatesWidget />
         </div>
-        
+
       </div>
     </div>
   );
 }
 
 function ContentTab({ items, icon: Icon, color }: { items?: SummaryItem[], icon: React.ElementType, color: string }) {
-    if (!items || items.length === 0) {
-      return (
-        <motion.div
-          key="empty-tab"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="text-center py-12"
-        >
-          <Icon className={`w-16 h-16 text-gray-600 mx-auto mb-4`} />
-          <h3 className="text-xl font-semibold text-gray-400 mb-2">No Data Available</h3>
-          <p className="text-gray-500">Click "Refresh Now" to fetch the latest updates.</p>
-        </motion.div>
-      );
-    }
-  
+  if (!items || items.length === 0) {
     return (
       <motion.div
-        key={color}
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: -20 }}
-        className="grid md:grid-cols-2 lg:grid-cols-3 gap-4"
+        key="empty-tab"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="text-center py-12"
       >
-        {items.map((item, idx) => (
-          <ContentCard key={idx} item={item} delay={idx * 0.05} color={color} />
-        ))}
+        <Icon className={`w-16 h-16 text-gray-600 mx-auto mb-4`} />
+        <h3 className="text-xl font-semibold text-gray-400 mb-2">No Data Available</h3>
+        <p className="text-gray-500">Click "Refresh Now" to fetch the latest updates.</p>
       </motion.div>
     );
   }
-  
-  function ContentCard({ item, delay, color }: { item: SummaryItem; delay: number, color: string }) {
-    return (
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay }}
-        className={`bg-white/5 border border-${color}-500/20 rounded-xl p-5 hover:border-${color}-500/50 transition-all group`}
+
+  return (
+    <motion.div
+      key={color}
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -20 }}
+      className="grid md:grid-cols-2 lg:grid-cols-3 gap-4"
+    >
+      {items.map((item, idx) => (
+        <ContentCard key={idx} item={item} delay={idx * 0.05} color={color} />
+      ))}
+    </motion.div>
+  );
+}
+
+function ContentCard({ item, delay, color }: { item: SummaryItem; delay: number, color: string }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay }}
+      className={`bg-white/5 border border-${color}-500/20 rounded-xl p-5 hover:border-${color}-500/50 transition-all group`}
+    >
+      <h3 className={`text-white font-bold text-lg mb-2 group-hover:text-${color}-400 transition-colors`}>
+        {item.title}
+      </h3>
+      <p className="text-gray-400 text-sm mb-4 line-clamp-3">{item.summary}</p>
+      <a
+        href={`https://www.google.com/search?q=${encodeURIComponent(item.title)}`}
+        target="_blank"
+        rel="noopener noreferrer"
+        className={`mt-4 px-4 py-2 bg-${color}-600 hover:bg-${color}-700 rounded-lg text-sm font-semibold flex items-center gap-2 w-full justify-center transition-all`}
       >
-        <h3 className={`text-white font-bold text-lg mb-2 group-hover:text-${color}-400 transition-colors`}>
-          {item.title}
-        </h3>
-        <p className="text-gray-400 text-sm mb-4 line-clamp-3">{item.summary}</p>
-        <a
-            href={`https://www.google.com/search?q=${encodeURIComponent(item.title)}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className={`mt-4 px-4 py-2 bg-${color}-600 hover:bg-${color}-700 rounded-lg text-sm font-semibold flex items-center gap-2 w-full justify-center transition-all`}
-        >
-            Learn More
-            <ExternalLink className="w-4 h-4" />
-        </a>
-      </motion.div>
-    );
-  }
+        Learn More
+        <ExternalLink className="w-4 h-4" />
+      </a>
+    </motion.div>
+  );
+}

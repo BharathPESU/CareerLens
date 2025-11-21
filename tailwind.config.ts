@@ -71,6 +71,12 @@ const config = {
           pink: '#FF6EC7',
           blue: '#4D9EFF',
         },
+        // Also add as top-level utilities for easier use
+        'neon-cyan': '#00E5FF',
+        'neon-purple': '#A57CFF',
+        'neon-emerald': '#00FFC6',
+        'neon-pink': '#FF6EC7',
+        'neon-blue': '#4D9EFF',
       },
       borderRadius: {
         lg: "var(--radius)",

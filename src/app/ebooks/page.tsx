@@ -2,11 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Search, 
-  BookOpen, 
-  Download, 
-  Bookmark, 
+import {
+  Search,
+  BookOpen,
+  Download,
+  Bookmark,
   BookmarkCheck,
   Filter,
   Star,
@@ -16,15 +16,15 @@ import {
   History,
   X
 } from 'lucide-react';
-import { 
-  searchBooks, 
-  getPopularBooks, 
+import {
+  searchBooks,
+  getPopularBooks,
   getRecommendations,
   POPULAR_GENRES,
   LANGUAGES,
   FORMATS,
   type Book,
-  type SearchFilters 
+  type SearchFilters
 } from '@/lib/services/internet-archive-service';
 import {
   searchGoogleBooks,
@@ -71,12 +71,12 @@ export default function EBooksPage() {
         getPopularGoogleBooks(),
         Promise.resolve(getSearchHistory())
       ]);
-      
+
       setBooks(popular);
       setGoogleBooks(googlePopular);
       setSearchHistory(history);
       setBookmarkedBooks(getBookmarkedBooks());
-      
+
       if (history.length > 0) {
         const recs = await getRecommendations(history);
         setRecommendations(recs);
@@ -93,17 +93,17 @@ export default function EBooksPage() {
 
     setLoading(true);
     setActiveTab('search');
-    
+
     try {
       addToSearchHistory(searchQuery);
       setSearchHistory(getSearchHistory());
-      
+
       if (bookSource === 'archive' || bookSource === 'both') {
         const { books: results, total } = await searchBooks(searchQuery, filters, currentPage);
         setBooks(results);
         setTotalResults(total);
       }
-      
+
       if (bookSource === 'google' || bookSource === 'both') {
         const { books: googleResults, totalItems } = await getFreeEbooks(searchQuery, (currentPage - 1) * 20);
         setGoogleBooks(googleResults);
@@ -130,7 +130,11 @@ export default function EBooksPage() {
   const displayBooks = activeTab === 'bookmarks' ? bookmarkedBooks : books;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-purple-950 to-slate-900 p-4 md:p-8">
+    <div className="min-h-screen relative overflow-hidden p-4 md:p-8">
+      {/* Animated Mesh Wave Background */}
+      <div className="fixed inset-0 bg-background -z-10">
+        <div className="mesh-wave-bg absolute inset-0" />
+      </div>
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
         <motion.div
@@ -139,12 +143,12 @@ export default function EBooksPage() {
           className="text-center space-y-4"
         >
           <div className="flex items-center justify-center gap-3">
-            <BookOpen className="w-12 h-12 text-purple-400" />
-            <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+            <BookOpen className="w-12 h-12 text-neon-cyan drop-shadow-[0_0_8px_rgba(0,229,255,0.6)]" />
+            <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-neon-cyan via-neon-purple to-neon-emerald bg-clip-text text-transparent text-glow-cyan">
               eBooks Library
             </h1>
           </div>
-          <p className="text-gray-400 text-lg">
+          <p className="text-white/65 text-lg">
             Search millions of free books from Internet Archive & Google Books
           </p>
         </motion.div>
@@ -158,31 +162,28 @@ export default function EBooksPage() {
         >
           <button
             onClick={() => setBookSource('both')}
-            className={`px-4 py-2 rounded-lg font-semibold transition-all ${
-              bookSource === 'both'
-                ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white'
-                : 'bg-white/10 border border-purple-500/30 text-gray-300 hover:bg-white/20'
-            }`}
+            className={`px-4 py-2 rounded-2xl font-semibold transition-all duration-300 ${bookSource === 'both'
+              ? 'bg-gradient-to-r from-neon-cyan to-neon-purple text-white shadow-neon-cyan/20 shadow-lg border border-neon-cyan/30'
+              : 'bg-white/[0.08] border border-white/[0.16] text-white/65 hover:bg-white/[0.12] hover:text-white hover:border-white/20'
+              }`}
           >
             All Sources
           </button>
           <button
             onClick={() => setBookSource('archive')}
-            className={`px-4 py-2 rounded-lg font-semibold transition-all ${
-              bookSource === 'archive'
-                ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white'
-                : 'bg-white/10 border border-purple-500/30 text-gray-300 hover:bg-white/20'
-            }`}
+            className={`px-4 py-2 rounded-2xl font-semibold transition-all duration-300 ${bookSource === 'archive'
+              ? 'bg-gradient-to-r from-neon-cyan to-neon-purple text-white shadow-neon-cyan/20 shadow-lg border border-neon-cyan/30'
+              : 'bg-white/[0.08] border border-white/[0.16] text-white/65 hover:bg-white/[0.12] hover:text-white hover:border-white/20'
+              }`}
           >
             Internet Archive
           </button>
           <button
             onClick={() => setBookSource('google')}
-            className={`px-4 py-2 rounded-lg font-semibold transition-all ${
-              bookSource === 'google'
-                ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white'
-                : 'bg-white/10 border border-purple-500/30 text-gray-300 hover:bg-white/20'
-            }`}
+            className={`px-4 py-2 rounded-2xl font-semibold transition-all duration-300 ${bookSource === 'google'
+              ? 'bg-gradient-to-r from-neon-cyan to-neon-purple text-white shadow-neon-cyan/20 shadow-lg border border-neon-cyan/30'
+              : 'bg-white/[0.08] border border-white/[0.16] text-white/65 hover:bg-white/[0.12] hover:text-white hover:border-white/20'
+              }`}
           >
             Google Books
           </button>
@@ -197,30 +198,29 @@ export default function EBooksPage() {
         >
           <div className="flex gap-2">
             <div className="relative flex-1">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/65" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
                 placeholder="Enter book title, author, or keyword..."
-                className="w-full pl-12 pr-4 py-4 bg-white/10 border border-purple-500/30 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20"
+                className="w-full pl-12 pr-4 py-4 bg-white/[0.08] border border-white/[0.16] rounded-2xl text-white placeholder-white/40 focus:outline-none focus:border-neon-cyan focus:ring-2 focus:ring-neon-cyan/20 backdrop-blur-xl transition-all"
               />
             </div>
             <button
               onClick={handleSearch}
               disabled={loading}
-              className="px-8 py-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 disabled:opacity-50 rounded-xl font-semibold transition-all"
+              className="px-8 py-4 bg-gradient-to-r from-neon-cyan to-neon-purple hover:shadow-neon-cyan/40 hover:shadow-lg disabled:opacity-50 rounded-2xl font-semibold transition-all duration-300"
             >
               {loading ? 'Searching...' : 'Search'}
             </button>
             <button
               onClick={() => setShowFilters(!showFilters)}
-              className={`px-6 py-4 rounded-xl font-semibold transition-all ${
-                showFilters
-                  ? 'bg-purple-600 text-white'
-                  : 'bg-white/10 border border-purple-500/30 hover:bg-white/20'
-              }`}
+              className={`px-6 py-4 rounded-2xl font-semibold transition-all duration-300 ${showFilters
+                ? 'bg-gradient-to-r from-neon-cyan to-neon-purple text-white shadow-neon-cyan/20 shadow-lg border border-neon-cyan/30'
+                : 'bg-white/[0.08] border border-white/[0.16] text-white/65 hover:bg-white/[0.12] hover:border-white/20'
+                }`}
             >
               <Filter className="w-5 h-5" />
             </button>
@@ -236,7 +236,7 @@ export default function EBooksPage() {
                     setSearchQuery(query);
                     setTimeout(handleSearch, 100);
                   }}
-                  className="px-3 py-1 text-sm bg-white/5 border border-purple-500/20 rounded-full text-gray-300 hover:bg-white/10 transition-all flex items-center gap-1"
+                  className="px-3 py-1 text-sm bg-white/[0.08] border border-white/[0.16] rounded-full text-white/65 hover:bg-white/[0.12] hover:text-white transition-all flex items-center gap-1"
                 >
                   <History className="w-3 h-3" />
                   {query}
@@ -253,7 +253,7 @@ export default function EBooksPage() {
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
-              className="bg-white/5 border border-purple-500/20 rounded-xl p-6 space-y-4"
+              className="bg-white/[0.08] border border-white/[0.16] rounded-2xl p-6 space-y-4 backdrop-blur-xl"
             >
               <div className="flex items-center justify-between">
                 <h3 className="text-lg font-semibold text-white flex items-center gap-2">
@@ -265,7 +265,7 @@ export default function EBooksPage() {
                     setFilters({});
                     setShowFilters(false);
                   }}
-                  className="text-sm text-purple-400 hover:text-purple-300"
+                  className="text-sm text-neon-cyan hover:text-neon-purple transition-colors"
                 >
                   Clear All
                 </button>
@@ -274,11 +274,11 @@ export default function EBooksPage() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {/* Genre */}
                 <div>
-                  <label className="block text-sm text-gray-400 mb-2">Genre</label>
+                  <label className="block text-sm text-white/65 mb-2 font-medium">Genre</label>
                   <select
                     value={filters.genre || ''}
                     onChange={(e) => setFilters({ ...filters, genre: e.target.value || undefined })}
-                    className="w-full px-4 py-2 bg-white/10 border border-purple-500/30 rounded-lg text-white focus:outline-none focus:border-purple-500"
+                    className="w-full px-4 py-2 bg-white/[0.08] border border-white/[0.16] rounded-2xl text-white focus:outline-none focus:border-neon-cyan focus:ring-2 focus:ring-neon-cyan/20 backdrop-blur-xl transition-all"
                   >
                     <option value="">All Genres</option>
                     {POPULAR_GENRES.map((genre) => (
@@ -289,11 +289,11 @@ export default function EBooksPage() {
 
                 {/* Language */}
                 <div>
-                  <label className="block text-sm text-gray-400 mb-2">Language</label>
+                  <label className="block text-sm text-white/65 mb-2 font-medium">Language</label>
                   <select
                     value={filters.language || ''}
                     onChange={(e) => setFilters({ ...filters, language: e.target.value || undefined })}
-                    className="w-full px-4 py-2 bg-white/10 border border-purple-500/30 rounded-lg text-white focus:outline-none focus:border-purple-500"
+                    className="w-full px-4 py-2 bg-white/[0.08] border border-white/[0.16] rounded-2xl text-white focus:outline-none focus:border-neon-cyan focus:ring-2 focus:ring-neon-cyan/20 backdrop-blur-xl transition-all"
                   >
                     <option value="">All Languages</option>
                     {LANGUAGES.map((lang) => (
@@ -304,11 +304,11 @@ export default function EBooksPage() {
 
                 {/* Format */}
                 <div>
-                  <label className="block text-sm text-gray-400 mb-2">Format</label>
+                  <label className="block text-sm text-white/65 mb-2 font-medium">Format</label>
                   <select
                     value={filters.format || ''}
                     onChange={(e) => setFilters({ ...filters, format: e.target.value || undefined })}
-                    className="w-full px-4 py-2 bg-white/10 border border-purple-500/30 rounded-lg text-white focus:outline-none focus:border-purple-500"
+                    className="w-full px-4 py-2 bg-white/[0.08] border border-white/[0.16] rounded-2xl text-white focus:outline-none focus:border-neon-cyan focus:ring-2 focus:ring-neon-cyan/20 backdrop-blur-xl transition-all"
                   >
                     <option value="">All Formats</option>
                     {FORMATS.map((format) => (
@@ -322,25 +322,23 @@ export default function EBooksPage() {
         </AnimatePresence>
 
         {/* Tabs */}
-        <div className="flex gap-4 border-b border-purple-500/20">
+        <div className="flex gap-4 border-b border-white/[0.16]">
           <button
             onClick={() => setActiveTab('search')}
-            className={`px-4 py-2 font-semibold transition-all ${
-              activeTab === 'search'
-                ? 'text-purple-400 border-b-2 border-purple-400'
-                : 'text-gray-400 hover:text-white'
-            }`}
+            className={`px-4 py-2 font-semibold transition-all duration-300 ${activeTab === 'search'
+              ? 'text-neon-cyan border-b-2 border-neon-cyan drop-shadow-[0_0_8px_rgba(0,229,255,0.4)]'
+              : 'text-white/65 hover:text-white'
+              }`}
           >
             <Search className="w-4 h-4 inline mr-2" />
             Search Results ({totalResults || books.length})
           </button>
           <button
             onClick={() => setActiveTab('bookmarks')}
-            className={`px-4 py-2 font-semibold transition-all ${
-              activeTab === 'bookmarks'
-                ? 'text-purple-400 border-b-2 border-purple-400'
-                : 'text-gray-400 hover:text-white'
-            }`}
+            className={`px-4 py-2 font-semibold transition-all duration-300 ${activeTab === 'bookmarks'
+              ? 'text-neon-cyan border-b-2 border-neon-cyan drop-shadow-[0_0_8px_rgba(0,229,255,0.4)]'
+              : 'text-white/65 hover:text-white'
+              }`}
           >
             <Bookmark className="w-4 h-4 inline mr-2" />
             Bookmarks ({bookmarkedBooks.length})
@@ -350,11 +348,10 @@ export default function EBooksPage() {
               setActiveTab('trending');
               loadInitialData();
             }}
-            className={`px-4 py-2 font-semibold transition-all ${
-              activeTab === 'trending'
-                ? 'text-purple-400 border-b-2 border-purple-400'
-                : 'text-gray-400 hover:text-white'
-            }`}
+            className={`px-4 py-2 font-semibold transition-all duration-300 ${activeTab === 'trending'
+              ? 'text-neon-cyan border-b-2 border-neon-cyan drop-shadow-[0_0_8px_rgba(0,229,255,0.4)]'
+              : 'text-white/65 hover:text-white'
+              }`}
           >
             <TrendingUp className="w-4 h-4 inline mr-2" />
             Trending
@@ -375,7 +372,7 @@ export default function EBooksPage() {
             {(bookSource === 'archive' || bookSource === 'both') && books.length > 0 && (
               <div className="space-y-4">
                 <h2 className="text-2xl font-bold text-white flex items-center gap-2">
-                  <BookOpen className="w-6 h-6 text-purple-400" />
+                  <BookOpen className="w-6 h-6 text-neon-cyan drop-shadow-[0_0_8px_rgba(0,229,255,0.6)]" />
                   Internet Archive ({books.length})
                 </h2>
                 <motion.div
@@ -400,7 +397,7 @@ export default function EBooksPage() {
             {(bookSource === 'google' || bookSource === 'both') && googleBooks.length > 0 && (
               <div className="space-y-4">
                 <h2 className="text-2xl font-bold text-white flex items-center gap-2">
-                  <BookOpen className="w-6 h-6 text-pink-400" />
+                  <BookOpen className="w-6 h-6 text-neon-purple drop-shadow-[0_0_8px_rgba(165,124,255,0.6)]" />
                   Google Books ({googleBooks.length})
                 </h2>
                 <motion.div
@@ -461,11 +458,11 @@ export default function EBooksPage() {
 
         {/* Empty State */}
         {!loading && books.length === 0 && googleBooks.length === 0 && (
-          <div className="text-center py-12 text-gray-400">
-            <BookOpen className="w-16 h-16 mx-auto mb-4 opacity-50" />
+          <div className="text-center py-12 text-white/65">
+            <BookOpen className="w-16 h-16 mx-auto mb-4 opacity-30" />
             <p className="text-lg">
-              {activeTab === 'bookmarks' 
-                ? 'No bookmarked books yet. Start exploring!' 
+              {activeTab === 'bookmarks'
+                ? 'No bookmarked books yet. Start exploring!'
                 : 'No books found. Try a different search.'}
             </p>
           </div>
@@ -475,14 +472,14 @@ export default function EBooksPage() {
         {recommendations.length > 0 && activeTab === 'search' && (
           <div className="space-y-4">
             <h2 className="text-2xl font-bold text-white flex items-center gap-2">
-              <Star className="w-6 h-6 text-yellow-400" />
+              <Star className="w-6 h-6 text-neon-emerald drop-shadow-[0_0_8px_rgba(0,255,198,0.6)]" />
               Recommended for You
             </h2>
             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
               {recommendations.slice(0, 6).map((book) => (
                 <div
                   key={book.id}
-                  className="bg-white/5 border border-purple-500/20 rounded-lg p-3 hover:bg-white/10 transition-all cursor-pointer"
+                  className="glass-card rounded-2xl p-3 hover:border-neon-cyan/50 transition-all cursor-pointer"
                   onClick={() => window.open(book.directLink, '_blank')}
                 >
                   <img
@@ -510,15 +507,15 @@ export default function EBooksPage() {
 }
 
 // Book Card Component
-function BookCard({ 
-  book, 
-  isBookmarked, 
-  onBookmark, 
-  delay 
-}: { 
-  book: Book; 
-  isBookmarked: boolean; 
-  onBookmark: () => void; 
+function BookCard({
+  book,
+  isBookmarked,
+  onBookmark,
+  delay
+}: {
+  book: Book;
+  isBookmarked: boolean;
+  onBookmark: () => void;
   delay: number;
 }) {
   return (
@@ -526,10 +523,10 @@ function BookCard({
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay }}
-      className="bg-white/5 border border-purple-500/20 rounded-xl overflow-hidden hover:border-purple-500/50 transition-all group"
+      className="glass-card rounded-2xl overflow-hidden hover:border-neon-cyan/50 transition-all group"
     >
       {/* Book Cover */}
-      <div className="relative h-64 bg-gradient-to-br from-purple-900/20 to-pink-900/20">
+      <div className="relative h-64 bg-gradient-to-br from-neon-cyan/10 to-neon-purple/10">
         <img
           src={book.thumbnail}
           alt={book.title}
@@ -544,7 +541,7 @@ function BookCard({
               href={book.directLink}
               target="_blank"
               rel="noopener noreferrer"
-              className="px-3 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg text-sm font-semibold flex items-center gap-1"
+              className="px-3 py-2 bg-gradient-to-r from-neon-cyan to-neon-purple hover:shadow-neon-cyan/40 hover:shadow-lg rounded-2xl text-sm font-semibold flex items-center gap-1 transition-all"
             >
               <Eye className="w-4 h-4" />
               View
@@ -553,7 +550,7 @@ function BookCard({
               href={book.previewLink}
               target="_blank"
               rel="noopener noreferrer"
-              className="px-3 py-2 bg-pink-600 hover:bg-pink-700 rounded-lg text-sm font-semibold flex items-center gap-1"
+              className="px-3 py-2 bg-white/[0.15] hover:bg-white/[0.25] backdrop-blur-xl rounded-2xl text-sm font-semibold flex items-center gap-1 border border-white/[0.16] transition-all"
             >
               <ExternalLink className="w-4 h-4" />
               Preview
@@ -562,10 +559,10 @@ function BookCard({
         </div>
         <button
           onClick={onBookmark}
-          className="absolute top-2 right-2 p-2 bg-black/50 backdrop-blur-sm rounded-full hover:bg-black/70 transition-all"
+          className="absolute top-2 right-2 p-2 bg-black/50 backdrop-blur-sm rounded-full hover:bg-black/70 transition-all hover:scale-110"
         >
           {isBookmarked ? (
-            <BookmarkCheck className="w-5 h-5 text-yellow-400" />
+            <BookmarkCheck className="w-5 h-5 text-neon-emerald drop-shadow-[0_0_8px_rgba(0,255,198,0.8)]" />
           ) : (
             <Bookmark className="w-5 h-5 text-white" />
           )}
@@ -577,21 +574,21 @@ function BookCard({
         <h3 className="text-white font-bold line-clamp-2 text-lg">
           {book.title}
         </h3>
-        <p className="text-purple-400 text-sm line-clamp-1">
+        <p className="text-neon-cyan text-sm line-clamp-1">
           {book.author.join(', ')}
         </p>
-        <p className="text-gray-400 text-sm line-clamp-2">
+        <p className="text-white/65 text-sm line-clamp-2">
           {book.description}
         </p>
 
         {/* Metadata */}
-        <div className="flex items-center justify-between text-xs text-gray-500 pt-2 border-t border-white/10">
+        <div className="flex items-center justify-between text-xs text-white/50 pt-2 border-t border-white/10">
           <span className="flex items-center gap-1">
             <Download className="w-3 h-3" />
             {book.downloads.toLocaleString()}
           </span>
           <span>{book.publishYear}</span>
-          <span className="px-2 py-1 bg-purple-500/20 rounded">
+          <span className="px-2 py-1 bg-neon-cyan/20 rounded text-neon-cyan">
             {book.format[0]}
           </span>
         </div>
@@ -601,11 +598,11 @@ function BookCard({
 }
 
 // Google Book Card Component
-function GoogleBookCard({ 
-  book, 
-  delay 
-}: { 
-  book: GoogleBook; 
+function GoogleBookCard({
+  book,
+  delay
+}: {
+  book: GoogleBook;
   delay: number;
 }) {
   return (
@@ -613,10 +610,10 @@ function GoogleBookCard({
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay }}
-      className="bg-white/5 border border-pink-500/20 rounded-xl overflow-hidden hover:border-pink-500/50 transition-all group"
+      className="glass-card rounded-2xl overflow-hidden hover:border-neon-purple/50 transition-all group"
     >
       {/* Book Cover */}
-      <div className="relative h-64 bg-gradient-to-br from-pink-900/20 to-purple-900/20">
+      <div className="relative h-64 bg-gradient-to-br from-neon-purple/10 to-neon-emerald/10">
         <img
           src={book.thumbnail || '/placeholder-book.png'}
           alt={book.title}
@@ -632,7 +629,7 @@ function GoogleBookCard({
                 href={book.previewLink}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="px-3 py-2 bg-pink-600 hover:bg-pink-700 rounded-lg text-sm font-semibold flex items-center gap-1"
+                className="px-3 py-2 bg-gradient-to-r from-neon-purple to-neon-emerald hover:shadow-neon-purple/40 hover:shadow-lg rounded-2xl text-sm font-semibold flex items-center gap-1 transition-all"
               >
                 <Eye className="w-4 h-4" />
                 Preview
@@ -643,7 +640,7 @@ function GoogleBookCard({
                 href={book.infoLink}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="px-3 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg text-sm font-semibold flex items-center gap-1"
+                className="px-3 py-2 bg-white/[0.15] hover:bg-white/[0.25] backdrop-blur-xl rounded-2xl text-sm font-semibold flex items-center gap-1 border border-white/[0.16] transition-all"
               >
                 <ExternalLink className="w-4 h-4" />
                 Info
@@ -663,17 +660,17 @@ function GoogleBookCard({
         <h3 className="text-white font-bold line-clamp-2 text-lg">
           {book.title}
         </h3>
-        <p className="text-pink-400 text-sm line-clamp-1">
+        <p className="text-neon-purple text-sm line-clamp-1">
           {book.authors.join(', ')}
         </p>
         {book.description && (
-          <p className="text-gray-400 text-sm line-clamp-2">
+          <p className="text-white/65 text-sm line-clamp-2">
             {book.description}
           </p>
         )}
 
         {/* Metadata */}
-        <div className="flex items-center justify-between text-xs text-gray-500 pt-2 border-t border-white/10">
+        <div className="flex items-center justify-between text-xs text-white/50 pt-2 border-t border-white/10">
           {book.averageRating && (
             <span className="flex items-center gap-1">
               <Star className="w-3 h-3 text-yellow-400 fill-yellow-400" />
@@ -685,13 +682,13 @@ function GoogleBookCard({
             <span>{new Date(book.publishedDate).getFullYear()}</span>
           )}
         </div>
-        
+
         {book.categories && book.categories.length > 0 && (
           <div className="flex flex-wrap gap-1 pt-2">
             {book.categories.slice(0, 2).map((cat, idx) => (
               <span
                 key={idx}
-                className="px-2 py-1 bg-pink-500/20 rounded text-xs text-pink-300"
+                className="px-2 py-1 bg-neon-purple/20 rounded text-xs text-neon-purple"
               >
                 {cat}
               </span>

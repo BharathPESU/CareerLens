@@ -1,0 +1,85 @@
+╔══════════════════════════════════════════════════════════════╗
+║         🎥 BACKGROUND VIDEO QUICK REFERENCE CARD             ║
+╚══════════════════════════════════════════════════════════════╝
+
+📁 WHERE TO PLACE YOUR VIDEO:
+   /home/balaraj/CareerLens/public/background-video.mp4
+
+⚡ QUICK SETUP:
+   1. Copy your video file to: public/background-video.mp4
+   2. Refresh browser (Ctrl+R)
+   3. Done! Video will play continuously
+
+🏗️ FILES MODIFIED:
+   ✅ src/components/global-background-video.tsx (NEW)
+   ✅ src/app/layout.tsx (UPDATED)
+   ✅ src/app/globals.css (UPDATED)
+
+🎯 KEY FEATURES:
+   ✓ Autoplays on page load
+   ✓ Loops forever
+   ✓ Never restarts when navigating
+   ✓ Fixed position (doesn't scroll)
+   ✓ All UI appears on top
+   ✓ Glassmorphic design maintained
+
+📊 Z-INDEX LAYERS:
+   10  → App Content (UI, cards, buttons)
+    1  → Mesh wave overlay (30% opacity)
+    0  → Dark overlay (40% opacity)
+   -1  → Your background video
+
+🎨 QUICK CUSTOMIZATIONS:
+
+   Darker Overlay (Better text contrast):
+   └─ In global-background-video.tsx
+      bg-black/40 → bg-black/60
+
+   Remove Mesh Wave Effect:
+   └─ In layout.tsx, delete the mesh-wave-bg div
+
+   Adjust Video Opacity:
+   └─ In global-background-video.tsx
+      Add: style={{ opacity: 0.7 }}
+
+🐛 TROUBLESHOOTING:
+
+   Video not playing?
+   └─ Check: ls public/background-video.mp4
+   └─ Format must be: MP4 (H.264)
+   └─ Clear cache: Ctrl+Shift+R
+
+   Video appears on top of UI?
+   └─ Check z-index in layout.tsx
+   └─ Video should be negative (-1 or -10)
+
+   Poor performance?
+   └─ Compress video (< 10MB)
+   └─ Lower resolution (1280x720)
+   └─ Reduce quality to 70-80%
+
+📐 RECOMMENDED VIDEO SPECS:
+   Format:     MP4 (H.264 codec)
+   Resolution: 1920x1080 (Full HD)
+   File Size:  < 10MB
+   Duration:   10-30 seconds
+   FPS:        30fps
+
+🚀 VERIFY IT WORKS:
+   □ Video plays automatically
+   □ Video loops continuously
+   □ Video fixed when scrolling
+   □ Video persists across pages
+   □ UI visible on top
+   □ Text is readable
+   □ No performance lag
+
+💡 PRO TIPS:
+   • Add poster image for loading state
+   • Use static image on mobile to save bandwidth
+   • Compress video with HandBrake for web
+   • Test on different screen sizes
+
+╔══════════════════════════════════════════════════════════════╗
+║  Need detailed info? See BACKGROUND_VIDEO_GUIDE.md           ║
+╚══════════════════════════════════════════════════════════════╝

@@ -82,12 +82,12 @@ export async function searchBooks(
     const url = `${ARCHIVE_SEARCH_API}?${params}`;
     console.log('Fetching from Internet Archive:', url);
 
-    const response = await fetch(url);
-    if (!response.ok) {
-      throw new Error(`Archive API error: ${response.status}`);
+    const apiResponse = await fetch(url);
+    if (!apiResponse.ok) {
+      throw new Error(`Archive API error: ${apiResponse.status}`);
     }
 
-    const data = await response.json();
+    const data = await apiResponse.json();
     const docs = data.response?.docs || [];
     const total = data.response?.numFound || 0;
 
@@ -122,13 +122,13 @@ export async function searchBooks(
 export async function getBookDetails(identifier: string): Promise<Book | null> {
   try {
     const metadataUrl = `${ARCHIVE_API_BASE}/metadata/${identifier}`;
-    const response = await fetch(metadataUrl);
+    const apiResponse = await fetch(metadataUrl);
     
-    if (!response.ok) {
-      throw new Error(`Failed to fetch book details: ${response.status}`);
+    if (!apiResponse.ok) {
+      throw new Error(`Failed to fetch book details: ${apiResponse.status}`);
     }
 
-    const data = await response.json();
+    const data = await apiResponse.json();
     const metadata = data.metadata;
 
     const book: Book = {

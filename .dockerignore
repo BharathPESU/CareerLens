@@ -1,0 +1,15 @@
+node_modules
+.next
+.git
+.github
+.env*
+!.env.example
+terraform
+docs
+*.md
+coverage
+build
+dist
+.vscode
+.idea
+*.log

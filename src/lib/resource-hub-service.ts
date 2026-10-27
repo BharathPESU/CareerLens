@@ -3,8 +3,7 @@
  * AI-powered course and certification recommendations
  */
 
-import { getFirestore, collection, addDoc, getDocs, query, where, limit, orderBy } from 'firebase/firestore';
-import { getApp } from 'firebase/app';
+import { putItem, scanItems, TABLES } from './dynamodb';
 import type { EnhancedUserProfile } from './types';
 
 export interface Resource {
@@ -135,43 +134,26 @@ Respond in JSON format:
 /**
  * Get curated resources from Firestore cache
  */
-/**
- * Get cached resources from Firestore
- */
 export async function getCachedResources(userId: string): Promise<Resource[]> {
   try {
-    const app = getApp();
-    const db = getFirestore(app);
-    
-    const resourcesRef = collection(db, 'resources');
-    const q = query(resourcesRef, where('userId', '==', userId), orderBy('createdAt', 'desc'), limit(10));
-    
-    const querySnapshot = await getDocs(q);
-    
-    return querySnapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    } as Resource));
+    const items = await scanItems<Resource>(TABLES.RESOURCES, { limit: 10 });
+    return items || [];
   } catch (error) {
-    console.error('Error fetching cached resources:', error);
-    // Return empty array if there's a permission error or no cached resources
+    console.error('[DynamoDB] Error fetching cached resources:', error);
     return [];
   }
 }
 
 /**
- * Cache resources in Firestore
+ * Cache resources in DynamoDB
  */
 async function cacheResources(resources: Resource[]): Promise<void> {
   try {
-    const app = getApp();
-    const db = getFirestore(app);
-
     for (const resource of resources) {
-      await addDoc(collection(db, 'resources'), resource);
+      await putItem(TABLES.RESOURCES, resource);
     }
   } catch (error) {
-    console.error('Error caching resources:', error);
+    console.error('[DynamoDB] Error caching resources:', error);
   }
 }
 

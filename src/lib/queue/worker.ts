@@ -211,11 +211,11 @@ class JobWorker {
                 step: 'ai-analysis',
             });
 
-            const result = await optimizeResumeWithAI({
-                resumeText: data.resumeText,
-                targetRole: data.targetRole,
-                industry: data.industry,
-            });
+            const result = await optimizeResumeWithAI(
+                data.resumeText,
+                data.targetRole,
+                data.industry
+            );
 
             // Step 3: Finalizing
             await this.updateProgress(job, {
@@ -264,11 +264,11 @@ class JobWorker {
                 step: 'ai-analysis',
             });
 
-            const result = await analyzeSkillGapWithAI({
-                targetRole: data.targetRole,
-                industry: data.industry,
-                currentSkills: data.currentSkills,
-            });
+            const result = await analyzeSkillGapWithAI(
+                data.targetRole,
+                data.currentSkills,
+                data.industry
+            );
 
             // Step 3: Finalizing
             await this.updateProgress(job, {

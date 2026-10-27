@@ -24,7 +24,7 @@ import {
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
-import type { User } from 'firebase/auth';
+import type { User } from '@/lib/cognito-auth';
 import React, { useState } from 'react';
 import useMeasure from 'react-use-measure';
 

@@ -6,7 +6,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getJobManager } from '@/lib/queue/job-manager';
 import { QueueName, JobData } from '@/lib/queue/config';
-import { auth } from '@/lib/auth'; // Assuming you have auth middleware
 
 /**
  * Validate and sanitize job data

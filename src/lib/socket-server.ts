@@ -48,7 +48,7 @@ class SocketJobServer {
      * Authentication middleware
      */
     private initializeMiddleware(): void {
-        this.io.use((socket: Socket, next) => {
+        this.io.use((socket: Socket, next: (err?: any) => void) => {
             try {
                 const token = socket.handshake.auth.token || socket.handshake.query.token;
 

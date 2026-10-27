@@ -106,7 +106,7 @@ export function useBackgroundJobs(options: UseBackgroundJobOptions) {
             // Update job in state
             setJobs((prev) => {
                 const updated = new Map(prev);
-                const job = updated.get(jobId) || {
+                const job: BackgroundJob = updated.get(jobId) || {
                     jobId,
                     status: 'processing',
                     createdAt: Date.now(),

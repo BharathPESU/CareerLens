@@ -9,20 +9,19 @@ import type {
   CollegeRecommendation,
   ExamType 
 } from '@/lib/types/community';
-import type { Firestore } from 'firebase/firestore';
-import { collection, query, where, getDocs, orderBy, limit } from 'firebase/firestore';
+import { scanItems, TABLES } from '@/lib/dynamodb';
 
 /**
  * Get college recommendations based on student preferences
  */
 export async function getCollegeRecommendations(
-  db: Firestore,
+  _db: any,
   preferences: StudentPreferences,
   maxResults: number = 20
 ): Promise<CollegeRecommendation[]> {
   try {
     // Fetch eligible colleges based on cutoffs
-    const colleges = await fetchEligibleColleges(db, preferences);
+    const colleges = await fetchEligibleColleges(_db, preferences);
     
     // Calculate match scores
     const recommendations: CollegeRecommendation[] = [];
@@ -79,66 +78,36 @@ export async function getCollegeRecommendations(
  * Fetch colleges eligible based on cutoffs
  */
 async function fetchEligibleColleges(
-  db: Firestore,
+  _db: any,
   preferences: StudentPreferences
 ): Promise<College[]> {
   try {
-    const collegesRef = collection(db, 'colleges');
+    const allColleges = await scanItems<College>(TABLES.COLLEGES);
     
-    // Query based on preferences
-    let q = query(collegesRef);
-    
-    // Filter by location if specified
-    if (preferences.location_preferences.length > 0) {
-      q = query(q, where('state', 'in', preferences.location_preferences));
-    }
-    
-    // Filter by college type
-    if (preferences.college_type_preferences.length > 0) {
-      q = query(q, where('type', 'in', preferences.college_type_preferences));
-    }
-    
-    const snapshot = await getDocs(q);
-    const colleges: College[] = [];
-    
-    snapshot.forEach((doc) => {
-      const data = doc.data();
-      const college: College = {
-        id: doc.id,
-        name: data.name,
-        location: data.location,
-        city: data.city,
-        state: data.state,
-        type: data.type,
-        affiliation: data.affiliation,
-        established: data.established,
-        courses: data.courses || [],
-        cutoffs: data.cutoffs || {},
-        nirf_rank: data.nirf_rank,
-        autonomous: data.autonomous || false,
-        placement_stats: data.placement_stats,
-        facilities: data.facilities || [],
-        website: data.website,
-        logo_url: data.logo_url
-      };
-      
-      // Check if student's score meets any branch cutoff
-      const examCutoffs = college.cutoffs[preferences.exam_type];
-      if (examCutoffs) {
-        const meetsAnyCutoff = preferences.branch_preferences.some(branch => {
-          const cutoff = examCutoffs[branch];
-          return cutoff && preferences.score >= cutoff * 0.8; // 80% of cutoff
-        });
-        
-        if (meetsAnyCutoff) {
-          colleges.push(college);
-        }
+    // Filter in-memory for zero-index costs and fast response
+    return allColleges.filter((college) => {
+      // Filter by location if specified
+      if (preferences.location_preferences.length > 0 && !preferences.location_preferences.includes(college.state)) {
+        return false;
       }
+      
+      // Filter by college type
+      if (preferences.college_type_preferences.length > 0 && !preferences.college_type_preferences.includes(college.type)) {
+        return false;
+      }
+
+      // Check if student's score meets cutoff
+      const examCutoffs = college.cutoffs?.[preferences.exam_type];
+      if (examCutoffs) {
+        return preferences.branch_preferences.some((branch) => {
+          const cutoff = examCutoffs[branch];
+          return cutoff && preferences.score >= cutoff * 0.8;
+        });
+      }
+      return true;
     });
-    
-    return colleges;
   } catch (error) {
-    console.error('Error fetching colleges:', error);
+    console.error('[DynamoDB] Error fetching colleges:', error);
     return [];
   }
 }

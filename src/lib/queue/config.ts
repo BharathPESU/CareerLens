@@ -160,7 +160,7 @@ export const REDIS_CHANNELS = {
  * Create Redis connection for BullMQ
  */
 export function createRedisConnection(): IORedis {
-    return new IORedis(REDIS_CONFIG);
+    return new IORedis(REDIS_CONFIG as any);
 }
 
 /**

@@ -41,9 +41,17 @@ next-env.d.ts
 
 .genkit/*
 .env*
+!.env.example
 .env.local
 
 # firebase
 firebase-debug.log
 firestore-debug.log
 .env.local
+
+# terraform
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example

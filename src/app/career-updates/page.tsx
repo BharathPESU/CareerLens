@@ -15,8 +15,6 @@ import {
   Newspaper,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
-import { db } from '@/lib/firebase';
-import { collection, query, orderBy, limit, onSnapshot as firestoreOnSnapshot } from 'firebase/firestore';
 import CareerUpdatesWidget from '@/components/CareerUpdatesWidget';
 
 interface SummaryItem {
@@ -40,56 +38,50 @@ export default function CareerUpdatesPage() {
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  const fetchLatest = async () => {
     setLoading(true);
     setError(null);
-
-    // Listen to the latest career update from our Real-Time Intel Engine
-    const q = query(collection(db, 'careerUpdates'), orderBy('timestamp', 'desc'), limit(1));
-
-    const unsubscribe = firestoreOnSnapshot(
-      q,
-      (snapshot) => {
-        if (!snapshot.empty) {
-          const data = snapshot.docs[0].data();
-          // Map the new data structure to existing UI
-          if (data.summary) {
-            setSummary({
-              trendingSkills: data.summary.trendingSkills?.map((s: any) => ({
-                title: s.skill || s.title,
-                summary: s.evidence?.[0] || `${s.changePct}% growth`
-              })) || [],
-              certifications: data.summary.certifications?.map((c: any) => ({
-                title: c.name || c.title,
-                summary: `${c.platform} - ${c.url || ''}`
-              })) || [],
-              opportunities: data.summary.opportunities || [],
-              aiInsights: data.summary.jobs?.map((j: any) => ({
-                title: j.title,
-                summary: `${j.count} openings in ${j.city}`
-              })) || []
-            });
-            setLastUpdate(data.timestamp?.toDate?.() || new Date());
-            setError(null);
-          }
-        } else {
-          console.log('No data in careerUpdates, using mock data');
-          setSummary(getMockSummary());
-          setLastUpdate(new Date());
-          setError("Showing demo data. Click 'Refresh Now' to fetch live updates.");
+    try {
+      const res = await fetch('/api/career-updates/latest');
+      const json = await res.json();
+      if (json.success && json.data) {
+        const data = json.data;
+        if (data.summary) {
+          setSummary({
+            trendingSkills: data.summary.trendingSkills?.map((s: any) => ({
+              title: s.skill || s.title,
+              summary: s.evidence?.[0] || `${s.changePct}% growth`
+            })) || [],
+            certifications: data.summary.certifications?.map((c: any) => ({
+              title: c.name || c.title,
+              summary: `${c.platform} - ${c.url || ''}`
+            })) || [],
+            opportunities: data.summary.opportunities || [],
+            aiInsights: data.summary.jobs?.map((j: any) => ({
+              title: j.title,
+              summary: `${j.count} openings in ${j.city}`
+            })) || []
+          });
+          setLastUpdate(data.timestamp ? new Date(data.timestamp) : new Date());
+          setError(null);
         }
-        setLoading(false);
-      },
-      (err) => {
-        console.error('Firestore error:', err);
+      } else {
         setSummary(getMockSummary());
         setLastUpdate(new Date());
-        setError(`Using demo data. ${err.message}`);
-        setLoading(false);
+        setError("Showing demo data. Click 'Refresh Now' to fetch live updates.");
       }
-    );
+    } catch (err: any) {
+      console.error('Fetch error:', err);
+      setSummary(getMockSummary());
+      setLastUpdate(new Date());
+      setError(`Using demo data. ${err.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    return () => unsubscribe();
+  useEffect(() => {
+    fetchLatest();
   }, []);
 
   const getMockSummary = (): CareerSummary => ({
@@ -126,7 +118,7 @@ export default function CareerUpdatesPage() {
       if (!result.success) {
         throw new Error(result.error || 'Failed to refresh data');
       }
-      // Success! The onSnapshot listener will pick up the new data automatically.
+      await fetchLatest();
     } catch (err: any) {
       console.error("Refresh failed:", err);
       setError(`Refresh failed: ${err.message}. Using cached data.`);

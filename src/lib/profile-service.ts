@@ -1,132 +1,73 @@
-
 'use client';
 
-import { doc, getDoc, setDoc, serverTimestamp, type Firestore, enableNetwork } from "firebase/firestore";
+import { getItem, putItem, TABLES } from './dynamodb';
 import type { UserProfile } from './types';
 
-
 /**
- * Serializes a user profile by converting Firestore Timestamps to ISO strings.
- * This is needed when passing profile data to Next.js server actions.
- * @param profile - The user profile with potential Firestore Timestamp objects
- * @returns A serialized profile safe for server actions
+ * Serializes a user profile.
+ * Safe for Next.js server actions.
  */
 export function serializeProfile(profile: any): any {
   if (!profile) return profile;
   
   return {
     ...profile,
-    updatedAt: profile.updatedAt?.seconds 
-      ? new Date(profile.updatedAt.seconds * 1000).toISOString() 
-      : undefined,
-    createdAt: profile.createdAt?.seconds 
-      ? new Date(profile.createdAt.seconds * 1000).toISOString() 
-      : undefined,
+    updatedAt: profile.updatedAt || undefined,
+    createdAt: profile.createdAt || undefined,
   };
 }
 
-
 /**
- * Fetches a user's profile from Firestore using the client-side SDK.
- * @param db - The Firestore instance.
+ * Fetches a user's profile from DynamoDB.
+ * @param _db - Legacy parameter for backward compatibility.
  * @param userId - The ID of the user.
  * @returns The user profile data or undefined if not found.
  */
-export async function fetchProfile(db: Firestore, userId: string): Promise<UserProfile | undefined> {
-  if (!db) {
-    console.warn('Firestore instance is not available. Cannot fetch profile.');
-    return undefined;
-  }
+export async function fetchProfile(_db: any, userId: string): Promise<UserProfile | undefined> {
   if (!userId) {
     console.warn('User ID is not provided. Cannot fetch profile.');
     return undefined;
   }
   try {
-    // Don't call enableNetwork as it may cause Target ID conflicts in concurrent requests
-    // await enableNetwork(db);
-    
-    const docRef = doc(db, 'users', userId);
-    const docSnap = await getDoc(docRef);
-
-    if (docSnap.exists()) {
-      // Return the document data, which should conform to UserProfile
-      return docSnap.data() as UserProfile;
-    } else {
-      console.log("No profile document found for user:", userId);
-      // Return undefined, the caller can decide to create a new profile.
-      return undefined;
+    const data = await getItem<UserProfile>(TABLES.USERS, { userId });
+    if (data) {
+      return data;
     }
+    console.log('No profile document found for user:', userId);
+    return undefined;
   } catch (err: any) {
-    console.error('Error fetching profile from Firestore:', err);
-    
-    // Handle Target ID conflicts
-    if (err?.code === 'target-id-exists' || err?.message?.includes('Target ID already exists')) {
-      console.warn('Firestore target ID conflict detected, retrying...');
-      await new Promise(resolve => setTimeout(resolve, 100));
-      try {
-        const docRef = doc(db, 'users', userId);
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-          return docSnap.data() as UserProfile;
-        }
-      } catch (retryError) {
-        console.error('Retry failed:', retryError);
-      }
-    }
-    
-    // Propagate the error so the UI can handle it (e.g., show a toast).
-    if (err.message.includes('offline')) {
-       throw new Error('Could not connect to the database. Please check your internet connection.');
-    }
-    throw new Error('Failed to fetch user profile.');
+    console.error('Error fetching profile from DynamoDB:', err);
+    return undefined;
   }
 }
 
 /**
- * Creates or updates a user's profile in the 'users' collection in Firestore.
- * @param db - The Firestore instance.
+ * Creates or updates a user's profile in DynamoDB.
+ * @param _db - Legacy parameter for backward compatibility.
  * @param userId - The ID of the user.
  * @param data - The user profile data to save.
  */
 export async function saveProfile(
-  db: Firestore,
+  _db: any,
   userId: string,
   data: UserProfile
 ): Promise<void> {
   if (!userId) {
     throw new Error('User ID is required to save the profile.');
   }
-  
-  // A reference to the document in the 'users' collection.
-  const docRef = doc(db, "users", userId);
-  
-  // Create a new object for Firestore to avoid mutating the original form data.
-  // Add the `updatedAt` server timestamp.
-  const dataToSave = {
-    ...data,
-    updatedAt: serverTimestamp(),
-  };
 
   try {
-    console.log('Attempting to save profile to Firestore for user:', userId);
-    console.log('Data to save:', dataToSave);
-    // Use setDoc with { merge: true } to create or update the document.
-    // This is robust and prevents overwriting fields unintentionally.
-    await setDoc(docRef, dataToSave, { merge: true });
-    console.log('Profile successfully saved to Firestore!');
+    console.log('Saving profile to DynamoDB for user:', userId);
+    const existing = (await getItem(TABLES.USERS, { userId })) || {};
+    await putItem(TABLES.USERS, {
+      ...existing,
+      ...data,
+      userId,
+      updatedAt: new Date().toISOString(),
+    });
+    console.log('Profile successfully saved to DynamoDB!');
   } catch (error: any) {
-    console.error("Error saving profile to Firestore:", error);
-    console.error("Error code:", error.code);
-    console.error("Error message:", error.message);
-    
-    // Provide specific error messages based on the error type
-    if (error.code === 'permission-denied') {
-      throw new Error("Permission denied. Please ensure Firestore security rules are deployed.");
-    } else if (error.code === 'unavailable') {
-      throw new Error("Could not connect to Firestore. Please check your internet connection.");
-    }
-    
-    // Throw a more user-friendly error message.
-    throw new Error(error.message || "Could not save your profile to the database. Please try again.");
+    console.error('Error saving profile to DynamoDB:', error);
+    throw new Error(error.message || 'Could not save your profile to the database. Please try again.');
   }
 }

@@ -1,0 +1,14 @@
+# Example Terraform variables
+# Copy this file to terraform.tfvars:
+# cp terraform.tfvars.example terraform.tfvars
+
+aws_region    = "us-east-1"
+environment   = "prod"
+app_name      = "careerlens"
+instance_type = "t3.micro"
+
+# Provide either an existing AWS Key Pair name:
+key_name      = "your-existing-key-name"
+
+# OR provide your local public key string to automatically create a key pair:
+# public_key  = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAI... user@machine"

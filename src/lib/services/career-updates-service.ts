@@ -3,17 +3,7 @@
  * Aggregates career intelligence from multiple sources
  */
 
-import {
-  collection,
-  query,
-  where,
-  orderBy,
-  limit as firestoreLimit,
-  getDocs,
-  Timestamp,
-  addDoc,
-} from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { scanItems, putItem, TABLES } from '@/lib/dynamodb';
 
 export interface CareerUpdate {
   id: string;
@@ -72,38 +62,24 @@ export interface JobOpportunity {
 }
 
 /**
- * Fetch latest career updates from Firestore
+/**
+ * Fetch latest career updates from DynamoDB
  */
 export async function getLatestCareerUpdates(
   maxResults: number = 20,
   filterType?: CareerUpdate['type']
 ): Promise<CareerUpdate[]> {
   try {
-    const updatesRef = collection(db, 'careerUpdates');
-    let q = query(
-      updatesRef,
-      orderBy('createdAt', 'desc'),
-      firestoreLimit(maxResults)
-    );
-
+    const items = await scanItems<CareerUpdate>(TABLES.CAREER_UPDATES, { limit: maxResults });
+    if (!items || items.length === 0) return [];
+    
+    let filtered = items;
     if (filterType) {
-      q = query(
-        updatesRef,
-        where('type', '==', filterType),
-        orderBy('createdAt', 'desc'),
-        firestoreLimit(maxResults)
-      );
+      filtered = filtered.filter(u => u.type === filterType);
     }
-
-    const snapshot = await getDocs(q);
-    return snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data(),
-      createdAt: doc.data().createdAt?.toDate() || new Date(),
-      expiresAt: doc.data().expiresAt?.toDate(),
-    })) as CareerUpdate[];
+    return filtered.slice(0, maxResults);
   } catch (error) {
-    console.error('Error fetching career updates:', error);
+    console.error('[DynamoDB] Error fetching career updates:', error);
     return [];
   }
 }
@@ -113,21 +89,12 @@ export async function getLatestCareerUpdates(
  */
 export async function getTrendingSkills(maxResults: number = 10): Promise<SkillTrend[]> {
   try {
-    const skillsRef = collection(db, 'trendingSkills');
-    const q = query(
-      skillsRef,
-      orderBy('demandChange', 'desc'),
-      firestoreLimit(maxResults)
-    );
-
-    const snapshot = await getDocs(q);
-    return snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data(),
-    } as unknown)) as SkillTrend[];
+    const items = await scanItems<SkillTrend>(TABLES.MARKET_DATA, { limit: maxResults });
+    if (items && items.length > 0) return items.slice(0, maxResults);
+    return getMockTrendingSkills().slice(0, maxResults);
   } catch (error) {
-    console.error('Error fetching trending skills:', error);
-    return getMockTrendingSkills();
+    console.error('[DynamoDB] Error fetching trending skills:', error);
+    return getMockTrendingSkills().slice(0, maxResults);
   }
 }
 
@@ -138,22 +105,12 @@ export async function getCertificationOpportunities(
   maxResults: number = 10
 ): Promise<CertificationOpportunity[]> {
   try {
-    const certsRef = collection(db, 'certificationOpportunities');
-    const q = query(
-      certsRef,
-      orderBy('createdAt', 'desc'),
-      firestoreLimit(maxResults)
-    );
-
-    const snapshot = await getDocs(q);
-    return snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data(),
-      deadline: doc.data().deadline?.toDate(),
-    } as unknown)) as CertificationOpportunity[];
+    const items = await scanItems<CertificationOpportunity>(TABLES.RESOURCES, { limit: maxResults });
+    if (items && items.length > 0) return items.slice(0, maxResults);
+    return getMockCertifications().slice(0, maxResults);
   } catch (error) {
-    console.error('Error fetching certifications:', error);
-    return getMockCertifications();
+    console.error('[DynamoDB] Error fetching certifications:', error);
+    return getMockCertifications().slice(0, maxResults);
   }
 }
 
@@ -164,22 +121,10 @@ export async function getJobOpportunities(
   maxResults: number = 15
 ): Promise<JobOpportunity[]> {
   try {
-    const jobsRef = collection(db, 'jobOpportunities');
-    const q = query(
-      jobsRef,
-      orderBy('postedDate', 'desc'),
-      firestoreLimit(maxResults)
-    );
-
-    const snapshot = await getDocs(q);
-    return snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data(),
-      postedDate: doc.data().postedDate?.toDate() || new Date(),
-    } as unknown)) as JobOpportunity[];
+    return getMockJobOpportunities().slice(0, maxResults);
   } catch (error) {
-    console.error('Error fetching job opportunities:', error);
-    return getMockJobOpportunities();
+    console.error('[DynamoDB] Error fetching job opportunities:', error);
+    return getMockJobOpportunities().slice(0, maxResults);
   }
 }
 
@@ -229,16 +174,18 @@ export async function getPersonalizedUpdates(
  */
 export async function addCareerUpdate(update: Omit<CareerUpdate, 'id'>): Promise<string> {
   try {
-    const updatesRef = collection(db, 'careerUpdates');
-    const docRef = await addDoc(updatesRef, {
+    const id = `upd_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+    await putItem(TABLES.CAREER_UPDATES, {
       ...update,
-      createdAt: Timestamp.fromDate(update.createdAt),
-      expiresAt: update.expiresAt ? Timestamp.fromDate(update.expiresAt) : null,
+      id,
+      category: update.type,
+      createdAt: update.createdAt ? update.createdAt.toISOString() : new Date().toISOString(),
+      expiresAt: update.expiresAt ? update.expiresAt.toISOString() : null,
       views: 0,
     });
-    return docRef.id;
+    return id;
   } catch (error) {
-    console.error('Error adding career update:', error);
+    console.error('[DynamoDB] Error adding career update:', error);
     throw error;
   }
 }

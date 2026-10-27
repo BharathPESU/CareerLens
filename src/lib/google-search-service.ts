@@ -18,21 +18,7 @@
  *    NEXT_PUBLIC_GOOGLE_SEARCH_ENGINE_ID=your_engine_id
  */
 
-import { getApp } from 'firebase/app';
-import { 
-  getFirestore, 
-  collection, 
-  addDoc, 
-  query, 
-  where, 
-  getDocs,
-  orderBy,
-  limit,
-  Timestamp,
-  doc,
-  setDoc,
-  getDoc
-} from 'firebase/firestore';
+import { getItem, putItem, TABLES } from './dynamodb';
 
 // ===== INTERFACES =====
 
@@ -136,43 +122,18 @@ function generateCacheKey(params: SearchParams): string {
   return `${params.category}_${params.query}_${params.numResults || 10}_${params.dateRestrict || 'all'}`;
 }
 
-/**
- * Check if cache is stale
- */
+const searchCache = new Map<string, { timestamp: number; data: GoogleSearchResult[] }>();
+
 async function isCacheStale(cacheKey: string, maxAge: number = CACHE_TTL_MS): Promise<boolean> {
-  try {
-    const db = getFirestore(getApp());
-    const cacheDocRef = doc(db, 'cache', cacheKey);
-    const cacheDoc = await getDoc(cacheDocRef);
-
-    if (!cacheDoc.exists()) {
-      return true; // No cache = stale
-    }
-
-    const lastUpdated = cacheDoc.data().lastUpdated?.toDate();
-    if (!lastUpdated) return true;
-
-    const age = Date.now() - lastUpdated.getTime();
-    return age > maxAge;
-  } catch (error) {
-    console.error('Error checking cache staleness:', error);
-    return true; // Assume stale on error
-  }
+  const cached = searchCache.get(cacheKey);
+  if (!cached) return true;
+  return Date.now() - cached.timestamp > maxAge;
 }
 
-/**
- * Update cache timestamp
- */
 async function updateCacheTimestamp(cacheKey: string): Promise<void> {
-  try {
-    const db = getFirestore(getApp());
-    const cacheDocRef = doc(db, 'cache', cacheKey);
-    await setDoc(cacheDocRef, {
-      lastUpdated: Timestamp.now(),
-      key: cacheKey
-    }, { merge: true });
-  } catch (error) {
-    console.error('Error updating cache timestamp:', error);
+  const cached = searchCache.get(cacheKey);
+  if (cached) {
+    cached.timestamp = Date.now();
   }
 }
 
@@ -324,103 +285,28 @@ export async function searchMentors(
  * Cache search results to Firestore
  */
 export async function cacheSearchResults(results: GoogleSearchResult[], cacheKey: string): Promise<void> {
-  if (!results || results.length === 0) {
-    console.log('[Google Search] No results to cache');
-    return;
-  }
-
-  try {
-    const db = getFirestore(getApp());
-    const resultsCollection = collection(db, RESULTS_COLLECTION);
-
-    // Prevent duplicates: check if result already exists
-    const existingQuery = query(
-      resultsCollection,
-      where('link', 'in', results.map(r => r.link))
-    );
-    const existingDocs = await getDocs(existingQuery);
-    const existingLinks = new Set(existingDocs.docs.map(doc => doc.data().link));
-
-    // Filter out duplicates
-    const newResults = results.filter(r => !existingLinks.has(r.link));
-
-    if (newResults.length === 0) {
-      console.log('[Google Search] All results already cached');
-      return;
-    }
-
-    // Store new results
-    const promises = newResults.map(result => 
-      addDoc(resultsCollection, {
-        ...result,
-        cacheKey,
-        addedAt: Timestamp.fromDate(result.addedAt),
-        publishDate: result.publishDate ? Timestamp.fromDate(result.publishDate) : null
-      })
-    );
-
-    await Promise.all(promises);
-
-    // Update cache timestamp
-    await updateCacheTimestamp(cacheKey);
-
-    console.log(`[Google Search] Cached ${newResults.length} new results (${results.length - newResults.length} duplicates skipped)`);
-
-  } catch (error) {
-    console.error('[Google Search] Error caching results:', error);
-    throw error;
-  }
+  if (!results || results.length === 0) return;
+  searchCache.set(cacheKey, {
+    timestamp: Date.now(),
+    data: results,
+  });
+  console.log(`[Google Search] Cached ${results.length} results in-memory`);
 }
 
 /**
- * Get cached search results from Firestore
+ * Get cached search results
  */
 export async function getCachedSearchResults(
   cacheKey: string,
   maxAge: number = CACHE_TTL_MS
 ): Promise<GoogleSearchResult[]> {
-  try {
-    // Check if cache is stale
-    if (await isCacheStale(cacheKey, maxAge)) {
-      console.log('[Google Search] Cache is stale');
-      return [];
-    }
-
-    const db = getFirestore(getApp());
-    const resultsCollection = collection(db, RESULTS_COLLECTION);
-
-    const q = query(
-      resultsCollection,
-      where('cacheKey', '==', cacheKey),
-      orderBy('addedAt', 'desc'),
-      limit(50)
-    );
-
-    const snapshot = await getDocs(q);
-
-    const results: GoogleSearchResult[] = snapshot.docs.map(doc => {
-      const data = doc.data();
-      return {
-        id: doc.id,
-        title: data.title,
-        snippet: data.snippet,
-        link: data.link,
-        source: data.source,
-        category: data.category,
-        relevanceScore: data.relevanceScore,
-        publishDate: data.publishDate?.toDate(),
-        metadata: data.metadata,
-        addedAt: data.addedAt?.toDate() || new Date()
-      };
-    });
-
-    console.log(`[Google Search] Retrieved ${results.length} cached results`);
-    return results;
-
-  } catch (error) {
-    console.error('[Google Search] Error retrieving cached results:', error);
+  const cached = searchCache.get(cacheKey);
+  if (!cached) return [];
+  if (Date.now() - cached.timestamp > maxAge) {
+    searchCache.delete(cacheKey);
     return [];
   }
+  return cached.data;
 }
 
 /**

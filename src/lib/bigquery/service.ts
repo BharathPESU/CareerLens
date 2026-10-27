@@ -1,7 +1,8 @@
-import { bigQueryClient, getTableId, BQ_CONFIG, isBigQueryConfigured } from './config';
+import { BQ_CONFIG, isBigQueryConfigured } from './config';
+import { scanItems, TABLES } from '../dynamodb';
 
 /**
- * BigQuery Service for CareerLens Resume Builder
+ * BigQuery/DynamoDB Market Data Service for CareerLens Resume Builder
  * 
  * Provides methods to query job market data, resume keywords, and career insights
  */
@@ -84,35 +85,18 @@ export async function getSkillsForRole(
     }
 
     try {
-        const query = `
-      SELECT 
-        job_role,
-        industry,
-        required_skills,
-        trending_skills,
-        average_salary,
-        salary_min,
-        salary_max,
-        demand_score,
-        ats_keywords,
-        experience_level,
-        region
-      FROM \`${getTableId(BQ_CONFIG.tables.jobMarketData)}\`
-      WHERE LOWER(job_role) LIKE LOWER(@role)
-      ${industry ? 'AND LOWER(industry) = LOWER(@industry)' : ''}
-      ORDER BY demand_score DESC
-      LIMIT 20
-    `;
+        const items = await scanItems<JobMarketData>(TABLES.MARKET_DATA);
+        const filtered = items.filter(job =>
+            job.job_role?.toLowerCase().includes(role.toLowerCase()) &&
+            (!industry || job.industry?.toLowerCase() === industry.toLowerCase())
+        );
 
-        const options = {
-            query,
-            params: { role: `%${role}%`, ...(industry && { industry }) },
-        };
-
-        const [rows] = await bigQueryClient.query(options);
-        return rows as JobMarketData[];
+        if (filtered.length > 0) {
+            return filtered.sort((a, b) => (b.demand_score || 0) - (a.demand_score || 0)).slice(0, 20);
+        }
+        return getMockSkillsForRole(role);
     } catch (error) {
-        console.error('Error querying BigQuery for skills:', error);
+        console.error('Error querying DynamoDB for skills:', error);
         return getMockSkillsForRole(role);
     }
 }
@@ -129,32 +113,31 @@ export async function getTrendingSkills(
     }
 
     try {
-        const query = `
-      WITH skills_unnested AS (
-        SELECT 
-          skill,
-          demand_score
-        FROM \`${getTableId(BQ_CONFIG.tables.jobMarketData)}\`,
-        UNNEST(trending_skills) AS skill
-        WHERE LOWER(industry) = LOWER(@industry)
-      )
-      SELECT 
-        skill,
-        AVG(demand_score) as demand_score,
-        COUNT(*) as frequency
-      FROM skills_unnested
-      GROUP BY skill
-      ORDER BY demand_score DESC, frequency DESC
-      LIMIT @limit
-    `;
+        const items = await scanItems<JobMarketData>(TABLES.MARKET_DATA);
+        const filtered = items.filter(job => !industry || job.industry?.toLowerCase() === industry.toLowerCase());
 
-        const options = {
-            query,
-            params: { industry, limit },
-        };
+        if (filtered.length === 0) {
+            return getMockTrendingSkills(industry);
+        }
 
-        const [rows] = await bigQueryClient.query(options);
-        return rows as { skill: string; demand_score: number; frequency: number }[];
+        const skillMap = new Map<string, { totalScore: number; count: number }>();
+        for (const job of filtered) {
+            for (const skill of job.trending_skills || []) {
+                const existing = skillMap.get(skill) || { totalScore: 0, count: 0 };
+                existing.totalScore += job.demand_score || 8.0;
+                existing.count += 1;
+                skillMap.set(skill, existing);
+            }
+        }
+
+        const results = Array.from(skillMap.entries()).map(([skill, stats]) => ({
+            skill,
+            demand_score: Number((stats.totalScore / stats.count).toFixed(1)),
+            frequency: stats.count,
+        }));
+
+        results.sort((a, b) => b.demand_score - a.demand_score || b.frequency - a.frequency);
+        return results.slice(0, limit);
     } catch (error) {
         console.error('Error querying trending skills:', error);
         return getMockTrendingSkills(industry);
@@ -173,32 +156,13 @@ export async function getResumeKeywords(
     }
 
     try {
-        const query = `
-      SELECT 
-        role,
-        industry,
-        high_impact_keywords,
-        ats_keywords,
-        soft_skills,
-        technical_skills,
-        action_verbs,
-        certifications,
-        keyword_weight,
-        effectiveness_score
-      FROM \`${getTableId(BQ_CONFIG.tables.resumeKeywords)}\`
-      WHERE LOWER(role) = LOWER(@role)
-      ${industry ? 'AND LOWER(industry) = LOWER(@industry)' : ''}
-      ORDER BY effectiveness_score DESC
-      LIMIT 1
-    `;
+        const items = await scanItems<ResumeKeywords>(TABLES.MARKET_DATA);
+        const found = items.find(k =>
+            k.role?.toLowerCase() === role.toLowerCase() &&
+            (!industry || k.industry?.toLowerCase() === industry.toLowerCase())
+        );
 
-        const options = {
-            query,
-            params: { role, ...(industry && { industry }) },
-        };
-
-        const [rows] = await bigQueryClient.query(options);
-        return rows.length > 0 ? (rows[0] as ResumeKeywords) : getMockResumeKeywords(role);
+        return found || getMockResumeKeywords(role);
     } catch (error) {
         console.error('Error querying resume keywords:', error);
         return getMockResumeKeywords(role);
@@ -214,33 +178,10 @@ export async function getCareerInsights(domain: string): Promise<CareerInsights 
     }
 
     try {
-        const query = `
-      SELECT 
-        domain,
-        future_opportunities,
-        certifications,
-        demand_score,
-        growth_rate,
-        avg_career_progression_years,
-        top_companies,
-        emerging_technologies,
-        skill_gap_analysis,
-        salary_growth_potential,
-        job_openings_count,
-        geographic_hotspots
-      FROM \`${getTableId(BQ_CONFIG.tables.careerInsights)}\`
-      WHERE LOWER(domain) LIKE LOWER(@domain)
-      ORDER BY demand_score DESC
-      LIMIT 1
-    `;
+        const items = await scanItems<CareerInsights>(TABLES.MARKET_DATA);
+        const found = items.find(i => i.domain?.toLowerCase().includes(domain.toLowerCase()));
 
-        const options = {
-            query,
-            params: { domain: `%${domain}%` },
-        };
-
-        const [rows] = await bigQueryClient.query(options);
-        return rows.length > 0 ? (rows[0] as CareerInsights) : getMockCareerInsights(domain);
+        return found || getMockCareerInsights(domain);
     } catch (error) {
         console.error('Error querying career insights:', error);
         return getMockCareerInsights(domain);
@@ -259,28 +200,36 @@ export async function getSalaryRange(
     }
 
     try {
-        const query = `
-      SELECT 
-        AVG(salary_min) as min,
-        AVG(salary_max) as max,
-        AVG(average_salary) as average
-      FROM \`${getTableId(BQ_CONFIG.tables.jobMarketData)}\`
-      WHERE LOWER(job_role) LIKE LOWER(@role)
-      ${region ? 'AND LOWER(region) = LOWER(@region)' : ''}
-    `;
+        const items = await scanItems<JobMarketData>(TABLES.MARKET_DATA);
+        const filtered = items.filter(job =>
+            job.job_role?.toLowerCase().includes(role.toLowerCase()) &&
+            (!region || job.region?.toLowerCase() === region.toLowerCase())
+        );
 
-        const options = {
-            query,
-            params: { role: `%${role}%`, ...(region && { region }) },
+        if (filtered.length === 0) {
+            return { min: 80000, max: 150000, average: 115000 };
+        }
+
+        const totals = filtered.reduce(
+            (acc, curr) => ({
+                min: acc.min + (curr.salary_min || 80000),
+                max: acc.max + (curr.salary_max || 150000),
+                avg: acc.avg + (curr.average_salary || 115000),
+            }),
+            { min: 0, max: 0, avg: 0 }
+        );
+
+        return {
+            min: Math.round(totals.min / filtered.length),
+            max: Math.round(totals.max / filtered.length),
+            average: Math.round(totals.avg / filtered.length),
         };
-
-        const [rows] = await bigQueryClient.query(options);
-        return rows.length > 0 ? rows[0] : null;
     } catch (error) {
         console.error('Error querying salary range:', error);
         return { min: 80000, max: 150000, average: 115000 };
     }
 }
+
 
 /**
  * Analyze skill gap for a resume

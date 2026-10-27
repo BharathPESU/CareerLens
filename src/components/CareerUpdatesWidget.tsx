@@ -1,11 +1,9 @@
 "use client";
 
-import { collection, query, orderBy, limit, onSnapshot, Timestamp } from "firebase/firestore";
 import { useEffect, useState } from "react";
-import { db } from "@/lib/firebase";
 
 interface CareerUpdate {
-  timestamp: Timestamp;
+  timestamp: any;
   summary: {
     trendingSkills: Array<{ skill: string; changePct: number; evidence: string[] }>;
     jobs: Array<{ title: string; city: string; count: number; exampleLinks: string[] }>;
@@ -21,10 +19,25 @@ export default function CareerUpdatesWidget() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
+  const fetchLatest = async () => {
+    try {
+      const res = await fetch('/api/career-updates/latest');
+      const json = await res.json();
+      if (json.success && json.data) {
+        setUpdate(json.data as CareerUpdate);
+      }
+    } catch (error) {
+      console.error("Error fetching career updates:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleRefresh = async () => {
     setRefreshing(true);
     try {
       await fetch('/api/career-updates/refresh', { method: 'POST' });
+      await fetchLatest();
     } catch (error) {
       console.error("Failed to refresh:", error);
     } finally {
@@ -33,18 +46,7 @@ export default function CareerUpdatesWidget() {
   };
 
   useEffect(() => {
-    // Listen to the latest career update
-    const q = query(collection(db, "careerUpdates"), orderBy("timestamp", "desc"), limit(1));
-    const unsub = onSnapshot(q, (snap: any) => {
-      if (!snap.empty) {
-        setUpdate(snap.docs[0].data() as CareerUpdate);
-      }
-      setLoading(false);
-    }, (err: any) => {
-      console.error("Error fetching career updates:", err);
-      setLoading(false);
-    });
-    return () => unsub();
+    fetchLatest();
   }, []);
 
   if (loading) return <div className="animate-pulse h-64 bg-gray-100/10 rounded-xl"></div>;
@@ -54,6 +56,12 @@ export default function CareerUpdatesWidget() {
   const skills = summary.trendingSkills || [];
   const jobs = summary.jobs || [];
   const insights = summary.insights || "Analyzing latest career trends...";
+
+  const formattedTime = new Date(
+    typeof update.timestamp?.toDate === 'function'
+      ? update.timestamp.toDate()
+      : update.timestamp || Date.now()
+  ).toLocaleTimeString();
 
   return (
     <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6 space-y-6">
@@ -88,35 +96,42 @@ export default function CareerUpdatesWidget() {
           <div className="space-y-2">
             {skills.length > 0 ? skills.map((s, i) => (
               <div key={i} className="flex items-center justify-between p-3 bg-white/5 rounded-lg hover:bg-white/10 transition-colors">
-                <span className="font-medium text-gray-200">{s.skill}</span>
-                <span className="text-green-400 text-sm font-bold">+{s.changePct || 0}%</span>
+                <div>
+                  <span className="font-medium text-white">{s.skill}</span>
+                  {s.evidence?.[0] && <p className="text-xs text-gray-400 mt-0.5">{s.evidence[0]}</p>}
+                </div>
+                <span className="text-xs font-bold text-green-400 bg-green-500/10 px-2 py-1 rounded">
+                  +{s.changePct}%
+                </span>
               </div>
-            )) : <p className="text-gray-500 text-sm">No skills data yet</p>}
+            )) : <p className="text-sm text-gray-500">Scanning trends...</p>}
           </div>
         </div>
 
-        {/* Hot Jobs */}
+        {/* In-Demand Jobs */}
         <div className="space-y-3">
-          <h4 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">Hot Jobs</h4>
+          <h4 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">In-Demand Roles</h4>
           <div className="space-y-2">
-            {jobs.length > 0 ? jobs.slice(0, 3).map((j, i) => (
-              <div key={i} className="p-3 bg-white/5 rounded-lg hover:bg-white/10 transition-colors">
-                <div className="flex justify-between">
-                  <span className="font-medium text-gray-200">{j.title}</span>
-                  <span className="text-xs text-gray-400">{j.city || 'Remote'}</span>
+            {jobs.length > 0 ? jobs.map((j, i) => (
+              <div key={i} className="flex items-center justify-between p-3 bg-white/5 rounded-lg hover:bg-white/10 transition-colors">
+                <div>
+                  <span className="font-medium text-white">{j.title}</span>
+                  <p className="text-xs text-gray-400 mt-0.5">{j.city}</p>
                 </div>
-                <div className="text-xs text-blue-400 mt-1">{(j.count || 0).toLocaleString()} openings</div>
+                <span className="text-xs font-semibold text-blue-400 bg-blue-500/10 px-2 py-1 rounded">
+                  {j.count}+ openings
+                </span>
               </div>
-            )) : <p className="text-gray-500 text-sm">No jobs data yet</p>}
+            )) : <p className="text-sm text-gray-500">Scanning job boards...</p>}
           </div>
         </div>
       </div>
 
-      {/* Metrics Ticker */}
-      <div className="flex gap-4 overflow-x-auto pb-2 pt-2 border-t border-white/10">
+      {/* Quick Metrics Bar */}
+      <div className="flex items-center justify-between border-t border-white/5 pt-4 overflow-x-auto gap-4">
         {summary.metrics?.aiMlGrowthPct && (
           <div className="flex-shrink-0 text-xs">
-            <span className="text-gray-400">AI/ML Growth:</span>
+            <span className="text-gray-400">AI/ML Surge:</span>
             <span className="ml-1 text-green-400 font-bold">+{summary.metrics.aiMlGrowthPct}%</span>
           </div>
         )}
@@ -135,7 +150,7 @@ export default function CareerUpdatesWidget() {
       </div>
       
       <div className="text-right text-[10px] text-gray-500">
-        Updated: {update.timestamp?.toDate().toLocaleTimeString()}
+        Updated: {formattedTime}
       </div>
     </div>
   );

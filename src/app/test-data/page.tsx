@@ -1,8 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
 
 export default function TestDataPage() {
   const [latestData, setLatestData] = useState<any>(null);
@@ -11,16 +9,10 @@ export default function TestDataPage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const q = query(
-          collection(db, 'careerUpdates'),
-          orderBy('timestamp', 'desc'),
-          limit(1)
-        );
-        const snapshot = await getDocs(q);
-        
-        if (!snapshot.empty) {
-          const data = snapshot.docs[0].data();
-          setLatestData(data);
+        const response = await fetch('/api/career-updates/latest');
+        const json = await response.json();
+        if (json.success && json.data) {
+          setLatestData(json.data);
         }
       } catch (error) {
         console.error('Error fetching data:', error);

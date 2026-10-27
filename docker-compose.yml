@@ -32,6 +32,13 @@ services:
       - REDIS_PORT=6379
       - SOCKET_URL=http://socket:3001
       - NEXT_PUBLIC_SOCKET_URL=http://localhost:3001
+      - AWS_REGION=${AWS_REGION:-us-east-1}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - NEXT_PUBLIC_COGNITO_USER_POOL_ID=${NEXT_PUBLIC_COGNITO_USER_POOL_ID}
+      - NEXT_PUBLIC_COGNITO_CLIENT_ID=${NEXT_PUBLIC_COGNITO_CLIENT_ID}
+      - NEXT_PUBLIC_AWS_REGION=${NEXT_PUBLIC_AWS_REGION:-us-east-1}
+      - NEXT_PUBLIC_GEMINI_API_KEY=${NEXT_PUBLIC_GEMINI_API_KEY}
     depends_on:
       redis:
         condition: service_healthy
@@ -50,9 +57,10 @@ services:
       - REDIS_PORT=6379
       - WORKER_CONCURRENCY=5
       - WORKER_MAX_JOBS=10
+      - AWS_REGION=${AWS_REGION:-us-east-1}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
       - GOOGLE_GENAI_API_KEY=${GOOGLE_GENAI_API_KEY}
-      - GOOGLE_CLOUD_PROJECT_ID=${GOOGLE_CLOUD_PROJECT_ID}
-      - BIGQUERY_DATASET=${BIGQUERY_DATASET}
     depends_on:
       redis:
         condition: service_healthy

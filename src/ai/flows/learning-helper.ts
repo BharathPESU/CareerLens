@@ -14,8 +14,8 @@ import {
 } from '@/ai/schemas/learning-helper';
 import { 
     learningOrchestratorFlow, 
-    type LearningOrchestratorOutput 
 } from './learning-orchestrator';
+import type { LearningOrchestratorOutput } from '@/ai/schemas/learning-orchestrator';
 
 
 export async function processPdf(input: LearningHelperInput): Promise<LearningOrchestratorOutput> {

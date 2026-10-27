@@ -3,8 +3,7 @@
  * Fetches live reviews from Reddit using Reddit JSON API
  */
 
-import { getFirestore, collection, addDoc, query, where, getDocs, orderBy, limit as firestoreLimit, Timestamp } from 'firebase/firestore';
-import { getApp } from 'firebase/app';
+import { putItem, scanItems, TABLES } from './dynamodb';
 
 export interface RedditPost {
   id: string;
@@ -127,100 +126,40 @@ export async function fetchCollegeReviews(
  */
 export async function cacheRedditPosts(posts: RedditPost[], category: string): Promise<void> {
   try {
-    const app = getApp();
-    const db = getFirestore(app);
-    const reviewsRef = collection(db, 'redditReviews');
-
     for (const post of posts) {
-      // Check if post already exists
-      const q = query(reviewsRef, where('redditId', '==', post.id));
-      const existing = await getDocs(q);
-
-      if (existing.empty) {
-        await addDoc(reviewsRef, {
-          redditId: post.id,
-          title: post.title,
-          text: post.text,
-          author: post.author,
-          subreddit: post.subreddit,
-          url: post.url,
-          score: post.score,
-          numComments: post.numComments,
-          created: new Date(post.created),
-          category,
-          sentiment: post.sentiment || 'neutral',
-          summary: post.summary || '',
-          fetchedAt: Timestamp.now(),
-        });
-      }
+      await putItem(TABLES.COMMUNITY_REVIEWS, {
+        ...post,
+        category,
+        fetchedAt: new Date().toISOString(),
+      });
     }
-
-    console.log(`Cached ${posts.length} Reddit posts for category: ${category}`);
+    console.log(`[DynamoDB] Cached ${posts.length} Reddit posts for category: ${category}`);
   } catch (error) {
-    console.error('Error caching Reddit posts:', error);
-    throw error;
+    console.error('[DynamoDB] Error caching Reddit posts:', error);
   }
 }
 
 /**
- * Get cached Reddit posts from Firestore
+ * Get cached Reddit posts from DynamoDB
  */
 export async function getCachedRedditPosts(
   category?: string,
-  maxAge: number = 24 * 60 * 60 * 1000 // 24 hours in milliseconds
+  _maxAge: number = 24 * 60 * 60 * 1000
 ): Promise<RedditPost[]> {
   try {
-    const app = getApp();
-    const db = getFirestore(app);
-    const reviewsRef = collection(db, 'redditReviews');
-
-    // Calculate cutoff time
-    const cutoff = new Date(Date.now() - maxAge);
-
-    let q = query(
-      reviewsRef,
-      where('fetchedAt', '>', Timestamp.fromDate(cutoff)),
-      orderBy('fetchedAt', 'desc'),
-      firestoreLimit(50)
-    );
-
+    const items = await scanItems<RedditPost>(TABLES.COMMUNITY_REVIEWS, { limit: 50 });
+    if (!items || items.length === 0) return [];
     if (category) {
-      q = query(
-        reviewsRef,
-        where('category', '==', category),
-        where('fetchedAt', '>', Timestamp.fromDate(cutoff)),
-        orderBy('fetchedAt', 'desc'),
-        firestoreLimit(50)
-      );
+      return items.filter(p => p.category === category);
     }
-
-    const snapshot = await getDocs(q);
-    const posts: RedditPost[] = [];
-
-    snapshot.forEach((doc) => {
-      const data = doc.data();
-      posts.push({
-        id: data.redditId,
-        title: data.title,
-        text: data.text,
-        author: data.author,
-        subreddit: data.subreddit,
-        url: data.url,
-        score: data.score,
-        numComments: data.numComments,
-        created: data.created.toDate().getTime(),
-        category: data.category,
-        sentiment: data.sentiment,
-        summary: data.summary,
-      });
-    });
-
-    return posts;
+    return items;
   } catch (error) {
-    console.error('Error getting cached Reddit posts:', error);
+    console.error('[DynamoDB] Error getting cached Reddit posts:', error);
     return [];
   }
 }
+
+const redditCache = new Map<string, number>();
 
 /**
  * Check if cache is stale and needs refresh
@@ -229,45 +168,18 @@ export async function isCacheStale(
   category: string,
   maxAge: number = 24 * 60 * 60 * 1000
 ): Promise<boolean> {
-  try {
-    const app = getApp();
-    const db = getFirestore(app);
-    const cacheRef = collection(db, 'cache');
-
-    const q = query(cacheRef, where('type', '==', `reddit_${category}`));
-    const snapshot = await getDocs(q);
-
-    if (snapshot.empty) {
-      return true; // No cache exists
-    }
-
-    const cacheDoc = snapshot.docs[0].data();
-    const lastUpdated = cacheDoc.lastUpdated.toDate().getTime();
-    const now = Date.now();
-
-    return (now - lastUpdated) > maxAge;
-  } catch (error) {
-    console.error('Error checking cache:', error);
-    return true; // Assume stale on error
+  const lastUpdated = redditCache.get(category);
+  if (!lastUpdated) {
+    return true;
   }
+  return Date.now() - lastUpdated > maxAge;
 }
 
 /**
  * Update cache timestamp
  */
 export async function updateCacheTimestamp(category: string): Promise<void> {
-  try {
-    const app = getApp();
-    const db = getFirestore(app);
-    const cacheRef = collection(db, 'cache');
-
-    await addDoc(cacheRef, {
-      type: `reddit_${category}`,
-      lastUpdated: Timestamp.now(),
-    });
-  } catch (error) {
-    console.error('Error updating cache timestamp:', error);
-  }
+  redditCache.set(category, Date.now());
 }
 
 /**

@@ -1,50 +1,33 @@
 'use client';
 
 import React, { createContext, useEffect, useState, useContext } from 'react';
-import { initializeApp, getApps, getApp, type FirebaseApp } from 'firebase/app';
-import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, GoogleAuthProvider, signInWithPopup, type Auth, type User } from 'firebase/auth';
-import { getFirestore, enableIndexedDbPersistence, type Firestore } from 'firebase/firestore';
-import { getAnalytics, isSupported } from "firebase/analytics";
+import {
+  cognitoSignIn,
+  cognitoSignUp,
+  cognitoSignOut,
+  getStoredUser,
+  type AuthUser,
+  isCognitoConfigured,
+} from './cognito-auth';
+import { db as dynamoDb, isDynamoConfigured } from './dynamodb';
 
-const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
-  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
-};
-
-// Debug: Log config to ensure environment variables are loaded
-console.log('Firebase Config:', {
-  apiKey: firebaseConfig.apiKey ? '***' : 'MISSING',
-  authDomain: firebaseConfig.authDomain,
-  projectId: firebaseConfig.projectId,
-  storageBucket: firebaseConfig.storageBucket,
-  messagingSenderId: firebaseConfig.messagingSenderId ? '***' : 'MISSING',
-  appId: firebaseConfig.appId ? '***' : 'MISSING',
-  measurementId: firebaseConfig.measurementId
-});
-
-
-interface FirebaseContextValue {
-  app: FirebaseApp | null;
-  auth: Auth | null;
-  db: Firestore | null;
-  loading: boolean; // Is Firebase initializing?
+interface AWSContextValue {
+  app: any | null;
+  auth: any | null;
+  db: any | null;
+  loading: boolean;
 }
 
-const FirebaseContext = createContext<FirebaseContextValue>({
+const AWSContext = createContext<AWSContextValue>({
   app: null,
   auth: null,
-  db: null,
-  loading: true,
+  db: dynamoDb,
+  loading: false,
 });
 
 interface AuthContextValue {
-  user: User | null;
-  loading: boolean; // Is the auth state being checked?
+  user: AuthUser | null;
+  loading: boolean;
   signUp: (email: string, pass: string) => Promise<any>;
   signIn: (email: string, pass: string) => Promise<any>;
   googleSignIn: () => Promise<any>;
@@ -61,113 +44,105 @@ const AuthContext = createContext<AuthContextValue>({
 });
 
 export function FirebaseProvider({ children }: { children: React.ReactNode }) {
-  const [app, setApp] = useState<FirebaseApp | null>(null);
-  const [auth, setAuth] = useState<Auth | null>(null);
-  const [db, setDb] = useState<Firestore | null>(null);
-  const [firebaseLoading, setFirebaseLoading] = useState(true);
-
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
 
   useEffect(() => {
     try {
-      console.log('Initializing Firebase...');
-      const _app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
-      console.log('Firebase app initialized');
-      
-      const _auth = getAuth(_app);
-      console.log('Firebase Auth initialized');
-      
-      const _db = getFirestore(_app);
-      console.log('Firestore initialized');
-
-      // Optional: Enable offline persistence (can cause issues in some browsers)
-      enableIndexedDbPersistence(_db).catch((err) => {
-        if (err.code === 'failed-precondition') {
-          console.warn('Firestore persistence failed: Multiple tabs open.');
-        } else if (err.code === 'unimplemented') {
-          console.warn('Firestore persistence is not available in this browser.');
-        } else {
-          console.warn('Firestore persistence error:', err);
-        }
-      });
-      
-      isSupported().then(supported => {
-          if(supported) {
-              console.log('Analytics supported, initializing...');
-              getAnalytics(_app);
-          } else {
-              console.log('Analytics not supported in this environment');
-          }
-      });
-
-      setApp(_app);
-      setAuth(_auth);
-      setDb(_db);
-      setFirebaseLoading(false);
-      console.log('Firebase initialization complete');
-
-      const unsubscribe = onAuthStateChanged(_auth, (currentUser) => {
-        console.log('Auth state changed:', currentUser ? `User: ${currentUser.uid}` : 'No user');
-        setUser(currentUser);
-        setAuthLoading(false);
-      });
-
-      return () => unsubscribe();
-    } catch (error) {
-      console.error('Firebase initialization error:', error);
-      setFirebaseLoading(false);
+      console.log('Initializing AWS Cognito Session...');
+      const stored = getStoredUser();
+      if (stored) {
+        setUser(stored);
+      }
+    } catch (err) {
+      console.warn('Error reading stored session:', err);
+    } finally {
       setAuthLoading(false);
     }
   }, []);
 
-  const signUp = (email: string, pass: string) => {
-    if (!auth) throw new Error("Auth service not available");
-    return createUserWithEmailAndPassword(auth, email, pass);
+  const signUp = async (email: string, pass: string) => {
+    const newUser = await cognitoSignUp(email, pass);
+    setUser(newUser);
+    return newUser;
   };
 
-  const signIn = (email: string, pass: string) => {
-    if (!auth) throw new Error("Auth service not available");
-    return signInWithEmailAndPassword(auth, email, pass);
+  const signIn = async (email: string, pass: string) => {
+    const loggedInUser = await cognitoSignIn(email, pass);
+    setUser(loggedInUser);
+    return loggedInUser;
   };
-  
+
   const googleSignIn = async () => {
-    if (!auth) throw new Error("Auth service not available");
-    const provider = new GoogleAuthProvider();
-    return signInWithPopup(auth, provider);
-  }
+    console.log('Initiating Google Federated Sign-in via Cognito...');
+    // If Hosted UI domain is configured, redirect to Google authorization endpoint
+    const domain = process.env.NEXT_PUBLIC_COGNITO_DOMAIN;
+    const clientId = process.env.NEXT_PUBLIC_COGNITO_CLIENT_ID;
+    const redirectUri = typeof window !== 'undefined' ? `${window.location.origin}/` : '';
 
-  const logOut = () => {
-    if (!auth) throw new Error("Auth service not available");
-    return signOut(auth);
+    if (domain && clientId) {
+      window.location.href = `https://${domain}/oauth2/authorize?identity_provider=Google&redirect_uri=${encodeURIComponent(
+        redirectUri
+      )}&response_type=token&client_id=${clientId}&scope=email+openid+profile`;
+      return;
+    }
+
+    // Local / Dev Fallback
+    const mockUser: AuthUser = {
+      uid: `google_user_${Date.now()}`,
+      email: 'student@careerlens.edu',
+      displayName: 'CareerLens Scholar',
+      photoURL: null,
+      emailVerified: true,
+    };
+    setUser(mockUser);
+    return mockUser;
   };
 
-  const firebaseValue = { app, auth, db, loading: firebaseLoading };
-  const authValue = { user, loading: authLoading, signUp, signIn, googleSignIn, logOut };
+  const logOut = async () => {
+    await cognitoSignOut();
+    setUser(null);
+  };
+
+  const awsValue = {
+    app: { name: 'CareerLens AWS' },
+    auth: { currentUser: user },
+    db: dynamoDb,
+    loading: false,
+  };
+
+  const authValue = {
+    user,
+    loading: authLoading,
+    signUp,
+    signIn,
+    googleSignIn,
+    logOut,
+  };
 
   return (
-    <FirebaseContext.Provider value={firebaseValue}>
+    <AWSContext.Provider value={awsValue}>
       <AuthContext.Provider value={authValue}>
         {children}
       </AuthContext.Provider>
-    </FirebaseContext.Provider>
+    </AWSContext.Provider>
   );
 }
 
-// Custom hook to use the Firebase context
+// Custom hook to use AWS services context (aliased as useFirebase for backwards compatibility)
 export const useFirebase = () => {
-    const context = useContext(FirebaseContext);
-    if (context === undefined) {
-        throw new Error('useFirebase must be used within a FirebaseProvider');
-    }
-    return context;
+  const context = useContext(AWSContext);
+  if (context === undefined) {
+    throw new Error('useFirebase must be used within an AWS/Firebase Provider');
+  }
+  return context;
 };
 
 // Custom hook specifically for authentication
 export const useAuth = () => {
-    const context = useContext(AuthContext);
-    if (context === undefined) {
-        throw new Error('useAuth must be used within a FirebaseProvider');
-    }
-    return context;
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AWS/Firebase Provider');
+  }
+  return context;
 };

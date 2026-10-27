@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
-import { adminDb } from '@/lib/firebase-admin';
+import { putItem, TABLES } from '@/lib/dynamodb';
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import * as admin from 'firebase-admin';
 
 // Initialize Gemini AI with API key (simpler than Vertex AI for development)
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
@@ -140,14 +139,17 @@ export async function POST() {
     // 2. Process with AI
     const summary = await summarizeWithGemini(combinedData);
 
-    // 3. Save to Firestore
-    const docRef = await adminDb.collection('careerUpdates').add({
-      timestamp: admin.firestore.FieldValue.serverTimestamp(),
-      summary: summary,
+    // 3. Save to DynamoDB
+    const id = `upd_${Date.now()}`;
+    await putItem(TABLES.CAREER_UPDATES, {
+      id,
+      category: 'summary',
+      timestamp: new Date().toISOString(),
+      summary,
       source: 'api-route-refresh'
     });
 
-    return NextResponse.json({ success: true, id: docRef.id, summary });
+    return NextResponse.json({ success: true, id, summary });
   } catch (error: any) {
     console.error("API Route Error:", error);
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });

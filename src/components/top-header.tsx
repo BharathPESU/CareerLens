@@ -3,7 +3,7 @@
 import { Sparkles, LogOut } from 'lucide-react';
 import { Button } from './ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
-import type { User } from 'firebase/auth';
+import type { User } from '@/lib/cognito-auth';
 
 interface TopHeaderProps {
     user: User | null;

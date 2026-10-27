@@ -1,4 +1,4 @@
-import { Firestore, collection, doc, getDoc, setDoc, updateDoc, arrayUnion, serverTimestamp } from 'firebase/firestore';
+import { getItem, putItem, TABLES } from './dynamodb';
 import type { EnhancedUserProfile } from './types';
 
 // Skill recommendation types
@@ -510,17 +510,18 @@ function getCategoryIcon(category: string): string {
 }
 
 /**
- * Save user's learning path to Firestore
+ * Save user's learning path to DynamoDB
  */
 export async function saveLearningPath(
-  db: Firestore,
+  _db: any,
   userId: string,
   learningPath: LearningPath
 ): Promise<void> {
-  const userRef = doc(db, 'users', userId);
-  await updateDoc(userRef, {
+  const existing = (await getItem(TABLES.USERS, { userId })) || { userId };
+  await putItem(TABLES.USERS, {
+    ...existing,
     learningPath,
-    updatedAt: serverTimestamp(),
+    updatedAt: new Date().toISOString(),
   });
 }
 
@@ -528,14 +529,23 @@ export async function saveLearningPath(
  * Add skill to user's learning list
  */
 export async function addSkillToLearning(
-  db: Firestore,
+  _db: any,
   userId: string,
   skill: SkillRecommendation
 ): Promise<void> {
-  const userRef = doc(db, 'users', userId);
-  await updateDoc(userRef, {
-    'learningPath.inProgressSkills': arrayUnion(skill.name),
-    updatedAt: serverTimestamp(),
+  const existing = (await getItem(TABLES.USERS, { userId })) || { userId };
+  const currentLearningPath = existing.learningPath || { inProgressSkills: [], completedSkills: [] };
+  const inProgress = currentLearningPath.inProgressSkills || [];
+  if (!inProgress.includes(skill.name)) {
+    inProgress.push(skill.name);
+  }
+  await putItem(TABLES.USERS, {
+    ...existing,
+    learningPath: {
+      ...currentLearningPath,
+      inProgressSkills: inProgress,
+    },
+    updatedAt: new Date().toISOString(),
   });
 }
 
@@ -543,28 +553,26 @@ export async function addSkillToLearning(
  * Mark skill as completed
  */
 export async function completeSkill(
-  db: Firestore,
+  _db: any,
   userId: string,
   skillName: string,
   xpReward: number = 100
 ): Promise<void> {
-  const userRef = doc(db, 'users', userId);
-  const userDoc = await getDoc(userRef);
-  
-  if (userDoc.exists()) {
-    const data = userDoc.data();
-    const inProgress = data.learningPath?.inProgressSkills || [];
-    const completed = data.learningPath?.completedSkills || [];
+  const existing = await getItem(TABLES.USERS, { userId });
+  if (existing) {
+    const currentLearningPath = existing.learningPath || { inProgressSkills: [], completedSkills: [] };
+    const inProgress = (currentLearningPath.inProgressSkills || []).filter((s: string) => s !== skillName);
+    const completed = [...(currentLearningPath.completedSkills || []), skillName];
 
-    // Remove from in-progress and add to completed
-    const updatedInProgress = inProgress.filter((s: string) => s !== skillName);
-    const updatedCompleted = [...completed, skillName];
-
-    await updateDoc(userRef, {
-      'learningPath.inProgressSkills': updatedInProgress,
-      'learningPath.completedSkills': updatedCompleted,
-      currentXP: (data.currentXP || 0) + xpReward,
-      updatedAt: serverTimestamp(),
+    await putItem(TABLES.USERS, {
+      ...existing,
+      learningPath: {
+        ...currentLearningPath,
+        inProgressSkills: inProgress,
+        completedSkills: completed,
+      },
+      currentXP: (existing.currentXP || 0) + xpReward,
+      updatedAt: new Date().toISOString(),
     });
   }
 }

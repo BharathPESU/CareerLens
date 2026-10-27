@@ -1,19 +1,11 @@
 'use client';
 
-import {
-  doc,
-  getDoc,
-  setDoc,
-  updateDoc,
-  serverTimestamp,
-  type Firestore,
-  enableNetwork,
-  collection,
-  query,
-  where,
-  getDocs,
-  addDoc,
-} from 'firebase/firestore';
+/**
+ * Enhanced User Profile Service - Powered by Amazon DynamoDB
+ * Replaces Firestore document reads/writes
+ */
+
+import { getItem, putItem, TABLES, isDynamoConfigured } from './dynamodb';
 import type {
   EnhancedUserProfile,
   Achievement,
@@ -26,25 +18,20 @@ import type {
  * Fetch enhanced user profile with all gamification data
  */
 export async function fetchEnhancedProfile(
-  db: Firestore,
+  _db: any,
   userId: string
 ): Promise<EnhancedUserProfile | null> {
-  if (!db || !userId) {
-    console.warn('DB or userId not provided');
+  if (!userId) {
+    console.warn('userId not provided to fetchEnhancedProfile');
     return null;
   }
 
   try {
-    // Don't call enableNetwork as it may cause Target ID conflicts
-    // await enableNetwork(db);
-    const docRef = doc(db, 'users', userId);
-    const docSnap = await getDoc(docRef);
+    const data = await getItem<EnhancedUserProfile>(TABLES.USERS, { userId });
 
-    if (docSnap.exists()) {
-      const data = docSnap.data();
+    if (data) {
       return {
         ...data,
-        // Ensure required gamification fields have defaults
         level: data.level || 1,
         currentXP: data.currentXP || 0,
         totalXP: data.totalXP || 0,
@@ -59,37 +46,24 @@ export async function fetchEnhancedProfile(
         languages: data.languages || [],
         interests: data.interests || [],
         analytics: data.analytics || initializeAnalytics(),
-      } as EnhancedUserProfile;
+      };
     }
 
-    // Return a new profile with defaults
+    // If no existing profile, return a default initialized profile
     return createDefaultProfile(userId);
   } catch (error: any) {
-    // Handle specific Firebase errors
-    if (error?.code === 'target-id-exists' || error?.message?.includes('Target ID already exists')) {
-      console.warn('Firestore target ID conflict detected, retrying...');
-      // Wait a bit and retry once
-      await new Promise(resolve => setTimeout(resolve, 100));
-      try {
-        const docRef = doc(db, 'users', userId);
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-          return docSnap.data() as EnhancedUserProfile;
-        }
-      } catch (retryError) {
-        console.error('Retry failed:', retryError);
-      }
-    }
-    console.error('Error fetching enhanced profile:', error);
-    return null;
+    console.error('[DynamoDB] Error fetching enhanced profile:', error);
+    return createDefaultProfile(userId);
   }
 }
+
+export const getEnhancedProfile = (userId: string) => fetchEnhancedProfile(null, userId);
 
 /**
  * Save enhanced user profile
  */
 export async function saveEnhancedProfile(
-  db: Firestore,
+  _db: any,
   userId: string,
   profile: Partial<EnhancedUserProfile>
 ): Promise<void> {
@@ -97,18 +71,19 @@ export async function saveEnhancedProfile(
     throw new Error('User ID is required');
   }
 
-  const docRef = doc(db, 'users', userId);
-
   try {
+    const existing = await fetchEnhancedProfile(_db, userId);
     const dataToSave = {
+      ...(existing || {}),
       ...profile,
-      updatedAt: serverTimestamp(),
+      userId,
+      updatedAt: new Date().toISOString(),
     };
 
-    await setDoc(docRef, dataToSave, { merge: true });
-    console.log('Enhanced profile saved successfully');
+    await putItem(TABLES.USERS, dataToSave);
+    console.log('Enhanced profile saved to DynamoDB successfully');
   } catch (error) {
-    console.error('Error saving enhanced profile:', error);
+    console.error('[DynamoDB] Error saving enhanced profile:', error);
     throw error;
   }
 }
@@ -117,12 +92,12 @@ export async function saveEnhancedProfile(
  * Award XP to user and update level
  */
 export async function awardXP(
-  db: Firestore,
+  _db: any,
   userId: string,
   xpAmount: number,
   reason: string
 ): Promise<{ leveledUp: boolean; newLevel: number }> {
-  const profile = await fetchEnhancedProfile(db, userId);
+  const profile = await fetchEnhancedProfile(_db, userId);
   if (!profile) throw new Error('Profile not found');
 
   const newCurrentXP = profile.currentXP + xpAmount;
@@ -137,26 +112,23 @@ export async function awardXP(
     const carryoverXP = newCurrentXP - profile.nextLevelXP;
     const newNextLevelXP = calculateNextLevelXP(newLevel);
 
-    await setDoc(doc(db, 'users', userId), {
+    await saveEnhancedProfile(_db, userId, {
       level: newLevel,
       currentXP: carryoverXP,
       totalXP: newTotalXP,
       nextLevelXP: newNextLevelXP,
       careerStage: getCareerStage(newLevel),
-      updatedAt: serverTimestamp(),
-    }, { merge: true });
+    });
 
-    // Log achievement
-    await logActivity(db, userId, 'level_up', {
+    await logActivity(_db, userId, 'level_up', {
       level: newLevel,
       reason,
     });
   } else {
-    await setDoc(doc(db, 'users', userId), {
+    await saveEnhancedProfile(_db, userId, {
       currentXP: newCurrentXP,
       totalXP: newTotalXP,
-      updatedAt: serverTimestamp(),
-    }, { merge: true });
+    });
   }
 
   return { leveledUp, newLevel };
@@ -166,11 +138,11 @@ export async function awardXP(
  * Complete a daily goal
  */
 export async function completeDailyGoal(
-  db: Firestore,
+  _db: any,
   userId: string,
   goalId: string
 ): Promise<void> {
-  const profile = await fetchEnhancedProfile(db, userId);
+  const profile = await fetchEnhancedProfile(_db, userId);
   if (!profile) throw new Error('Profile not found');
 
   const updatedGoals = profile.dailyGoals.map((goal) =>
@@ -181,24 +153,23 @@ export async function completeDailyGoal(
 
   const completedGoal = updatedGoals.find((g) => g.id === goalId);
   if (completedGoal) {
-    await awardXP(db, userId, completedGoal.xpReward, `Completed goal: ${completedGoal.text}`);
+    await awardXP(_db, userId, completedGoal.xpReward, `Completed goal: ${completedGoal.text}`);
   }
 
-  await setDoc(doc(db, 'users', userId), {
+  await saveEnhancedProfile(_db, userId, {
     dailyGoals: updatedGoals,
-    updatedAt: serverTimestamp(),
-  }, { merge: true });
+  });
 }
 
 /**
  * Unlock an achievement
  */
 export async function unlockAchievement(
-  db: Firestore,
+  _db: any,
   userId: string,
   achievementId: string
 ): Promise<void> {
-  const profile = await fetchEnhancedProfile(db, userId);
+  const profile = await fetchEnhancedProfile(_db, userId);
   if (!profile) throw new Error('Profile not found');
 
   const updatedAchievements = profile.achievements.map((achievement) =>
@@ -211,30 +182,24 @@ export async function unlockAchievement(
       : achievement
   );
 
-  await setDoc(doc(db, 'users', userId), {
+  await saveEnhancedProfile(_db, userId, {
     achievements: updatedAchievements,
-    updatedAt: serverTimestamp(),
-  }, { merge: true });
-
-  // Award XP for unlocking achievement
-  await awardXP(db, userId, 100, `Unlocked achievement: ${achievementId}`);
-
-  // Log activity
-  await logActivity(db, userId, 'achievement_unlocked', {
-    achievementId,
   });
+
+  await awardXP(_db, userId, 100, `Unlocked achievement: ${achievementId}`);
+  await logActivity(_db, userId, 'achievement_unlocked', { achievementId });
 }
 
 /**
  * Update project status
  */
 export async function updateProjectStatus(
-  db: Firestore,
+  _db: any,
   userId: string,
   projectId: string,
   status: 'not-started' | 'in-progress' | 'completed'
 ): Promise<void> {
-  const profile = await fetchEnhancedProfile(db, userId);
+  const profile = await fetchEnhancedProfile(_db, userId);
   if (!profile) throw new Error('Profile not found');
 
   const updatedProjects = profile.projects.map((project) => {
@@ -251,16 +216,14 @@ export async function updateProjectStatus(
     return project;
   });
 
-  await setDoc(doc(db, 'users', userId), {
+  await saveEnhancedProfile(_db, userId, {
     projects: updatedProjects,
-    updatedAt: serverTimestamp(),
-  }, { merge: true });
+  });
 
-  // Award XP if completed
   const completedProject = updatedProjects.find((p) => p.id === projectId);
   if (status === 'completed' && completedProject) {
     await awardXP(
-      db,
+      _db,
       userId,
       completedProject.xpReward,
       `Completed project: ${completedProject.title}`
@@ -271,9 +234,9 @@ export async function updateProjectStatus(
 /**
  * Update user streak
  */
-export async function updateStreak(db: Firestore, userId: string): Promise<number> {
-  const profile = await fetchEnhancedProfile(db, userId);
-  if (!profile) throw new Error('Profile not found');
+export async function updateStreak(_db: any, userId: string): Promise<number> {
+  const profile = await fetchEnhancedProfile(_db, userId);
+  if (!profile) return 0;
 
   const today = new Date().toISOString().split('T')[0];
   const lastActivity = profile.lastActivityDate?.split('T')[0];
@@ -283,7 +246,6 @@ export async function updateStreak(db: Firestore, userId: string): Promise<numbe
   if (!lastActivity) {
     newStreak = 1;
   } else if (lastActivity === today) {
-    // Already counted today
     return newStreak;
   } else {
     const yesterday = new Date();
@@ -293,38 +255,38 @@ export async function updateStreak(db: Firestore, userId: string): Promise<numbe
     if (lastActivity === yesterdayStr) {
       newStreak += 1;
     } else {
-      // Streak broken
       newStreak = 1;
     }
   }
 
-  await setDoc(doc(db, 'users', userId), {
+  await saveEnhancedProfile(_db, userId, {
     streak: newStreak,
     lastActivityDate: new Date().toISOString(),
-    updatedAt: serverTimestamp(),
-  }, { merge: true });
+  });
 
   return newStreak;
 }
 
 /**
- * Log user activity
+ * Log user activity in DynamoDB
  */
 export async function logActivity(
-  db: Firestore,
+  _db: any,
   userId: string,
   activityType: string,
   metadata: any
 ): Promise<void> {
   try {
-    await addDoc(collection(db, 'activities'), {
+    const activityId = `act_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+    await putItem(TABLES.ACTIVITIES, {
       userId,
+      activityId,
       type: activityType,
       metadata,
-      timestamp: serverTimestamp(),
+      timestamp: new Date().toISOString(),
     });
   } catch (error) {
-    console.error('Error logging activity:', error);
+    console.error('[DynamoDB] Error logging activity:', error);
   }
 }
 
@@ -332,17 +294,17 @@ export async function logActivity(
  * Calculate analytics based on user data
  */
 export async function calculateAnalytics(
-  db: Firestore,
+  _db: any,
   userId: string
 ): Promise<void> {
-  const profile = await fetchEnhancedProfile(db, userId);
+  const profile = await fetchEnhancedProfile(_db, userId);
   if (!profile) return;
 
   const analytics = {
     totalProjects: profile.projects.length,
     completedProjects: profile.projects.filter((p) => p.status === 'completed').length,
     totalSkills: profile.skills?.length || 0,
-    totalInterviews: 0, // Can be tracked separately
+    totalInterviews: 0,
     resumeScore: calculateResumeScore(profile),
     jobMatchProbability: calculateJobMatch(profile),
     weeklyHours: profile.weeklyActivity.reduce((sum, day) => sum + day.hours, 0),
@@ -352,16 +314,10 @@ export async function calculateAnalytics(
     ),
   };
 
-  await setDoc(doc(db, 'users', userId), {
-    analytics,
-    updatedAt: serverTimestamp(),
-  }, { merge: true });
+  await saveEnhancedProfile(_db, userId, { analytics });
 }
 
-/**
- * Helper Functions
- */
-
+// Helpers
 function calculateNextLevelXP(level: number): number {
   return Math.floor(1000 * Math.pow(1.5, level - 1));
 }
@@ -379,44 +335,27 @@ function getCareerStage(
 
 function calculateResumeScore(profile: EnhancedUserProfile): number {
   let score = 0;
-
-  // Basic info
   if (profile.name) score += 10;
   if (profile.email) score += 5;
   if (profile.phone) score += 5;
   if (profile.linkedin) score += 5;
   if (profile.github) score += 5;
-
-  // Summary/Objective
   if (profile.summary || profile.objective) score += 10;
-
-  // Experience
   const expCount = profile.experienceDetails?.length || profile.experience?.length || 0;
   score += Math.min(expCount * 10, 30);
-
-  // Education
   const eduCount = profile.educationDetails?.length || profile.education?.length || 0;
   score += Math.min(eduCount * 10, 20);
-
-  // Skills
   const skillCount = profile.skills?.length || 0;
   score += Math.min(skillCount * 2, 10);
-
   return Math.min(score, 100);
 }
 
 function calculateJobMatch(profile: EnhancedUserProfile): number {
-  // Simplified job match calculation
-  let score = 60; // Base score
-
-  // More skills = better match
+  let score = 60;
   const skillCount = profile.skills?.length || 0;
   score += Math.min(skillCount, 20);
-
-  // More experience = better match
   const expCount = profile.experienceDetails?.length || profile.experience?.length || 0;
   score += Math.min(expCount * 5, 20);
-
   return Math.min(score, 100);
 }
 
@@ -533,7 +472,7 @@ function initializeAnalytics() {
   };
 }
 
-function createDefaultProfile(userId: string): EnhancedUserProfile {
+export function createDefaultProfile(userId: string): EnhancedUserProfile {
   return {
     name: '',
     email: '',

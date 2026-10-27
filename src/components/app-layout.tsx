@@ -6,11 +6,9 @@ import { useRouter, usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { NavMobile } from './nav-mobile';
-import { signOut } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, logOut } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -24,10 +22,9 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   }, [authLoading, user, router, isAuthPage, pathname]);
 
   const handleLogout = async () => {
-    if (!auth) return;
     setIsLoggingOut(true);
     try {
-      await signOut(auth);
+      await logOut();
       router.replace('/login');
     } catch (error) {
       console.error('Logout error:', error);

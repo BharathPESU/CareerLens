@@ -16,9 +16,7 @@ import {
   searchResources,
 } from '@/lib/resource-hub-service';
 
-import { getDoc, doc } from 'firebase/firestore';
-import { getFirestore } from 'firebase/firestore';
-import { getApp } from 'firebase/app';
+import { getEnhancedProfile } from '@/lib/enhanced-profile-service';
 import type { EnhancedUserProfile } from '@/lib/types';
 
 export default function ResourceHubPage() {
@@ -88,16 +86,12 @@ export default function ResourceHubPage() {
 
     setLoadingAI(true);
     try {
-      // Fetch user profile from Firestore
-      const app = getApp();
-      const db = getFirestore(app);
-      const userDoc = await getDoc(doc(db, 'users', user.uid));
+      // Fetch user profile from DynamoDB
+      const userProfile = await getEnhancedProfile(user.uid);
 
-      if (!userDoc.exists()) {
+      if (!userProfile) {
         throw new Error('User profile not found');
       }
-
-      const userProfile = userDoc.data() as EnhancedUserProfile;
       const recommendations = await getAIResourceRecommendations(userProfile);
       setAiRecommendations(recommendations);
       toast({

@@ -17,21 +17,7 @@
  * - Firestore caching (24h TTL)
  */
 
-import { getApp } from 'firebase/app';
-import { 
-  getFirestore, 
-  collection, 
-  addDoc, 
-  query, 
-  where, 
-  getDocs,
-  orderBy,
-  limit,
-  Timestamp,
-  doc,
-  setDoc,
-  getDoc
-} from 'firebase/firestore';
+const courseCache = new Map<string, { timestamp: number; data: ScrapedCourse[] }>();
 
 // ===== INTERFACES =====
 
@@ -122,35 +108,18 @@ async function fetchWithRetry(url: string, retries = MAX_RETRIES): Promise<Respo
  * Check if cache is stale
  */
 async function isCacheStale(platform: string, maxAge = CACHE_TTL_MS): Promise<boolean> {
-  try {
-    const db = getFirestore(getApp());
-    const cacheDocRef = doc(db, 'cache', `scraper_${platform.toLowerCase()}`);
-    const cacheDoc = await getDoc(cacheDocRef);
-
-    if (!cacheDoc.exists()) return true;
-
-    const lastUpdated = cacheDoc.data().lastUpdated?.toDate();
-    if (!lastUpdated) return true;
-
-    return Date.now() - lastUpdated.getTime() > maxAge;
-  } catch (error) {
-    console.error('[Scraper] Error checking cache:', error);
-    return true;
-  }
+  const cached = courseCache.get(platform.toLowerCase());
+  if (!cached) return true;
+  return Date.now() - cached.timestamp > maxAge;
 }
 
 /**
  * Update cache timestamp
  */
 async function updateCacheTimestamp(platform: string): Promise<void> {
-  try {
-    const db = getFirestore(getApp());
-    await setDoc(doc(db, 'cache', `scraper_${platform.toLowerCase()}`), {
-      lastUpdated: Timestamp.now(),
-      platform
-    }, { merge: true });
-  } catch (error) {
-    console.error('[Scraper] Error updating cache timestamp:', error);
+  const cached = courseCache.get(platform.toLowerCase());
+  if (cached) {
+    cached.timestamp = Date.now();
   }
 }
 
@@ -447,7 +416,7 @@ function extractSkillTags(text: string): string[] {
 // ===== CACHING FUNCTIONS =====
 
 /**
- * Cache scraped courses to Firestore
+ * Cache scraped courses to in-memory store
  */
 export async function cacheScrapedCourses(courses: ScrapedCourse[], platform: string): Promise<void> {
   if (!courses || courses.length === 0) {
@@ -456,16 +425,9 @@ export async function cacheScrapedCourses(courses: ScrapedCourse[], platform: st
   }
 
   try {
-    const db = getFirestore(getApp());
-    const coursesCollection = collection(db, SCRAPED_COURSES_COLLECTION);
-
-    // Check for duplicates
-    const existingQuery = query(
-      coursesCollection,
-      where('url', 'in', courses.map(c => c.url))
-    );
-    const existingDocs = await getDocs(existingQuery);
-    const existingUrls = new Set(existingDocs.docs.map(doc => doc.data().url));
+    const existingEntry = courseCache.get(platform.toLowerCase());
+    const existingList = existingEntry?.data || [];
+    const existingUrls = new Set(existingList.map(c => c.url));
 
     const newCourses = courses.filter(c => !existingUrls.has(c.url));
 
@@ -474,75 +436,43 @@ export async function cacheScrapedCourses(courses: ScrapedCourse[], platform: st
       return;
     }
 
-    // Store new courses
-    const promises = newCourses.map(course =>
-      addDoc(coursesCollection, {
-        ...course,
-        addedAt: Timestamp.fromDate(course.addedAt),
-        startDate: course.startDate ? Timestamp.fromDate(course.startDate) : null,
-        endDate: course.endDate ? Timestamp.fromDate(course.endDate) : null
-      })
-    );
+    courseCache.set(platform.toLowerCase(), {
+      timestamp: Date.now(),
+      data: [...existingList, ...newCourses]
+    });
 
-    await Promise.all(promises);
-    await updateCacheTimestamp(platform);
-
-    console.log(`[${platform}] Cached ${newCourses.length} new courses`);
-
+    console.log(`[${platform}] Cached ${newCourses.length} new courses (Total: ${existingList.length + newCourses.length})`);
   } catch (error) {
     console.error(`[${platform}] Error caching courses:`, error);
   }
 }
 
 /**
- * Get cached courses from Firestore
+ * Get cached courses
  */
 export async function getCachedCourses(
   platform?: string,
   maxAge = CACHE_TTL_MS
 ): Promise<ScrapedCourse[]> {
   try {
-    if (platform && await isCacheStale(platform, maxAge)) {
-      console.log(`[${platform}] Cache is stale`);
-      return [];
+    if (platform) {
+      if (await isCacheStale(platform, maxAge)) {
+        console.log(`[${platform}] Cache is stale`);
+        return [];
+      }
+      const entry = courseCache.get(platform.toLowerCase());
+      return entry?.data || [];
     }
 
-    const db = getFirestore(getApp());
-    const coursesCollection = collection(db, SCRAPED_COURSES_COLLECTION);
+    const allCourses: ScrapedCourse[] = [];
+    for (const [p, entry] of courseCache.entries()) {
+      if (Date.now() - entry.timestamp <= maxAge) {
+        allCourses.push(...entry.data);
+      }
+    }
 
-    const q = platform
-      ? query(coursesCollection, where('platform', '==', platform), orderBy('addedAt', 'desc'), limit(50))
-      : query(coursesCollection, orderBy('addedAt', 'desc'), limit(100));
-
-    const snapshot = await getDocs(q);
-
-    const courses: ScrapedCourse[] = snapshot.docs.map(doc => {
-      const data = doc.data();
-      return {
-        id: doc.id,
-        title: data.title,
-        description: data.description,
-        url: data.url,
-        platform: data.platform,
-        instructor: data.instructor,
-        duration: data.duration,
-        level: data.level,
-        skillTags: data.skillTags || [],
-        isFree: data.isFree,
-        rating: data.rating,
-        enrollmentCount: data.enrollmentCount,
-        thumbnail: data.thumbnail,
-        startDate: data.startDate?.toDate(),
-        endDate: data.endDate?.toDate(),
-        language: data.language,
-        category: data.category,
-        addedAt: data.addedAt?.toDate() || new Date()
-      };
-    });
-
-    console.log(`[Scraper] Retrieved ${courses.length} cached courses`);
-    return courses;
-
+    console.log(`[Scraper] Retrieved ${allCourses.length} cached courses`);
+    return allCourses;
   } catch (error) {
     console.error('[Scraper] Error retrieving cached courses:', error);
     return [];

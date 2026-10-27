@@ -1,8 +1,6 @@
 
 'use server';
 
-import { config } from 'dotenv';
-config();
 
 import '@/ai/flows/generate-career-recommendations.ts';
 import '@/ai/flows/perform-skill-gap-analysis.ts';

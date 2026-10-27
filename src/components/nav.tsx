@@ -24,7 +24,7 @@ import {
     Languages,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { User } from 'firebase/auth';
+import type { User } from '@/lib/cognito-auth';
 import { Button } from './ui/button';
 
 const navItems = [

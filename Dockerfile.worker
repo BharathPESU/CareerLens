@@ -1,20 +1,17 @@
 # Worker Dockerfile
-FROM node:18-alpine
+FROM node:20-alpine
 
 WORKDIR /app
 
 # Install dependencies
 COPY package*.json ./
-RUN npm ci --only=production
+RUN npm ci
 
 # Copy source
 COPY . .
 
-# Build TypeScript
-RUN npm run build
-
-# Run worker
-CMD ["node", "dist/lib/queue/worker.js"]
+# Run worker using tsx for native TS execution
+CMD ["npx", "tsx", "src/lib/queue/worker.ts"]
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \

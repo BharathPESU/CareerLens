@@ -12,8 +12,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Badge } from '@/components/ui/badge';
-import type { GenerateInterviewQuestionsOutput } from '@/ai/flows/generate-interview-questions';
+import type { GenerateInterviewQuestionsOutput } from '@/ai/schemas/generate-interview-questions';
 
 const formSchema = z.object({
   careerRole: z.string().min(3, 'Please specify a career role.'),
@@ -48,9 +47,9 @@ export function InterviewPrepPage() {
     }
   }
 
-  const easyQuestions = result?.interviewQuestions.filter(q => q.difficulty === 'easy') || [];
-  const mediumQuestions = result?.interviewQuestions.filter(q => q.difficulty === 'medium') || [];
-  const hardQuestions = result?.interviewQuestions.filter(q => q.difficulty === 'hard') || [];
+  const easyQuestions = result?.interviewQuestions?.filter((q: any) => q.difficulty === 'easy') || [];
+  const mediumQuestions = result?.interviewQuestions?.filter((q: any) => q.difficulty === 'medium') || [];
+  const hardQuestions = result?.interviewQuestions?.filter((q: any) => q.difficulty === 'hard') || [];
 
 
   return (
@@ -130,7 +129,7 @@ function QuestionList({ questions }: { questions: NonNullable<GenerateInterviewQ
     }
     return (
         <Accordion type="multiple" className="w-full space-y-2">
-            {questions.map((q, index) => (
+            {questions.map((q: any, index: number) => (
                 <AccordionItem value={`item-${index}`} key={index} className="border rounded-lg bg-card">
                     <AccordionTrigger className="p-4 text-left font-medium hover:no-underline">
                         <div className="flex items-start gap-4">
